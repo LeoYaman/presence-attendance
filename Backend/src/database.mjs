@@ -16,10 +16,10 @@ export function createPool(dsn) {
   pool.on('error', () => console.error('Database pool connection error'));
   return pool;
 }
-export async function transaction(pool, work) {
+export async function transaction(pool, work, { readOnly = false } = {}) {
   const client = await pool.connect();
   try {
-    await client.query('BEGIN');
+    await client.query(readOnly ? 'BEGIN READ ONLY' : 'BEGIN');
     const result = await work(client);
     await client.query('COMMIT');
     return result;

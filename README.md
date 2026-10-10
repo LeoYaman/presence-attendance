@@ -79,6 +79,16 @@ available on request from UCF Brand and Marketing. To switch, replace
 
 From `Backend`, run `npm run start:local`, then visit `http://localhost:3000`. This persistent PGlite demo needs no cloud credentials and opens the fixed synthetic teacher session without a login page. Data is saved in `Backend/.local-db/pgdata/database.tar` after commits. Restarting keeps attendance and corrections. Only use it on this computer; it binds to `127.0.0.1`.
 
+The local teacher can select all ten catalog courses using **Choose course**.
+All 30 fictional students are enrolled in every course. When the existing four
+team test identities are present, startup also enrolls them in every catalog
+course (34 people per course, 340 catalog memberships). Their existing face
+references can be used in courses managed by their teacher.
+The roster and course identities are defined in `assets/demo-catalog.json`, and
+portrait provenance is recorded in `assets/student-photos/mapping.json`.
+Startup adds these local fixtures without replacing existing demo or team records.
+The older teacher-page URLs redirect to this API-backed dashboard.
+
 This local mode does not provide TimescaleDB hypertables. See [Backend local demo instructions](Backend/README.md) for the distinction from the Tiger Data setup. The cloud `.env` and production migration commands are preserved.
 
 ## Frontend camera matching (repository code)

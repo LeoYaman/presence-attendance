@@ -6,6 +6,7 @@ import {createHash} from 'node:crypto';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {applyMigrations,verifySchema} from './migrations.mjs';
 import {seedDemo,demo} from './seed-demo.mjs';
+import {seedLocalCatalog} from './seed-local-catalog.mjs';
 import {createApp} from '../src/server.mjs';
 import {opaqueToken,tokenDigest,sessionCookie} from '../src/auth.mjs';
 
@@ -74,7 +75,16 @@ export async function openLocalDatabase(dataDir) {
   async function acquire(){let release; const next=new Promise(resolve=>{release=resolve;}); const previous=tail; tail=next; await previous; return release;}
   const pool={
     async query(sql,params){const release=await acquire(); try{const result=await raw.query(sql,params);if(!/^\s*(SELECT|WITH|SHOW)\b/i.test(sql))await persist();return result;}finally{release();}},
-    async connect(){const release=await acquire(); return {query:async(sql,params)=>{const result=await raw.query(sql,params);if(/^\s*COMMIT\b/i.test(sql))await persist();return result;},release};},
+    async connect(){
+      const release=await acquire(); let readOnly=false;
+      return {query:async(sql,params)=>{
+        const result=await raw.query(sql,params);
+        if(/^\s*BEGIN\b/i.test(sql))readOnly=/\bREAD\s+ONLY\b/i.test(sql);
+        if(/^\s*SET\s+TRANSACTION\b/i.test(sql)&&/\bREAD\s+(ONLY|WRITE)\b/i.test(sql))readOnly=/\bREAD\s+ONLY\b/i.test(sql);
+        if(/^\s*COMMIT\b/i.test(sql)&&!readOnly)await persist();
+        return result;
+      },release};
+    },
     async end(){await tail; if(!engine.closed) await engine.close();}
   };
   return {pool,engine};
@@ -86,7 +96,7 @@ async function main(){
   const {port,publicOrigin,secureCookies}=configuration;
   const {pool}=await openLocalDatabase(fileURLToPath(new URL('../.local-db/pgdata/',import.meta.url)));
   const client=await pool.connect();
-  try{await client.query('BEGIN'); await seedDemo(client,opaqueToken()); await client.query('COMMIT');}
+  try{await client.query('BEGIN'); await seedDemo(client,opaqueToken()); await seedLocalCatalog(client,{localOnly:true}); await client.query('COMMIT');}
   catch(error){await client.query('ROLLBACK'); throw error;}finally{client.release();}
   const server=createApp({pool,publicOrigin,secureCookies,syntheticCamera:true});
   const handle=server.listeners('request')[0]; server.removeAllListeners('request');

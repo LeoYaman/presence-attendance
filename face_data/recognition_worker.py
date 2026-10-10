@@ -206,6 +206,8 @@ class RecognitionWorker:
         return {"matches": matches, "registeredReferences": len(mappings)}
 
     def _faces(self, frame: Any) -> list[tuple[tuple[int, int, int, int], float, Any]]:
+        if self.detector is None:
+            self.detector, self._mp = _create_detector()
         rgb = self.cv2.cvtColor(frame, self.cv2.COLOR_BGR2RGB)
         mp = self._mp
         result = self.detector.detect(mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb))
@@ -358,14 +360,23 @@ class RecognitionWorker:
 def _create_worker() -> RecognitionWorker:
     try:
         import cv2
-        import mediapipe as mp
         import numpy as np
-        from mediapipe.tasks import python
-        from mediapipe.tasks.python import vision
     except ImportError as error:
         raise RuntimeError("Install face_data/requirements.txt to run recognition_worker.py") from error
     if not hasattr(cv2, "face") or not hasattr(cv2.face, "LBPHFaceRecognizer_create"):
         raise RuntimeError("opencv-contrib-python with the face module is required")
+    # Saved SFace references do not use MediaPipe. Load that separate detector
+    # only for temporary enrollment, keeping it out of the first SFace decision.
+    return RecognitionWorker(None, cv2, np)
+
+
+def _create_detector() -> tuple[Any, Any]:
+    try:
+        import mediapipe as mp
+        from mediapipe.tasks import python
+        from mediapipe.tasks.python import vision
+    except ImportError as error:
+        raise RuntimeError("Install face_data/requirements.txt to run recognition_worker.py") from error
     if not Path(MODEL).is_file():
         raise RuntimeError(f"Detector model is missing; download {URL} to {MODEL}")
     options = vision.FaceDetectorOptions(
@@ -373,9 +384,7 @@ def _create_worker() -> RecognitionWorker:
         running_mode=vision.RunningMode.IMAGE,
         min_detection_confidence=MIN_DETECTION_SCORE,
     )
-    worker = RecognitionWorker(vision.FaceDetector.create_from_options(options), cv2, np)
-    worker._mp = mp
-    return worker
+    return vision.FaceDetector.create_from_options(options), mp
 
 
 def main() -> int:
@@ -398,7 +407,8 @@ def main() -> int:
                 print(f"request failed: {error}", file=sys.stderr, flush=True)
             print(json.dumps(response, separators=(",", ":"), allow_nan=False), flush=True)
     finally:
-        worker.detector.close()
+        if worker.detector is not None:
+            worker.detector.close()
     return 0
 
 

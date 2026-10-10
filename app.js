@@ -32,6 +32,15 @@ async function api(path, body) {
   if (!response.ok) { if (response.status === 401 && path !== '/login' && requestContext === contextVersion) showSignedOut(); throw Object.assign(new Error(payload.error?.message || `Request failed (${response.status}).`), { code: payload.error?.code, status: response.status }); }
   return payload;
 }
+async function recordingRequest(path, {method = 'GET', body, rawBody, contentType} = {}) {
+  const response=await fetch(`/api${path}`,{method,credentials:'same-origin',cache:'no-store',
+    headers:method==='GET'?{}:{'X-CSRF-Token':state.csrf,'Content-Type':contentType||'application/json'},
+    ...(method==='GET'?{}:{body:rawBody===undefined?JSON.stringify(body??{}):rawBody})});
+  let payload;
+  try{payload=await response.json();}catch{throw new Error('The video server returned an unreadable response.');}
+  if(!response.ok)throw Object.assign(new Error(payload.error?.message||`Video request failed (${response.status}).`),{status:response.status,code:payload.error?.code});
+  return payload;
+}
 function singleFlight(key, operation) { if (inflight.has(key)) return inflight.get(key); const promise = Promise.resolve().then(operation).finally(() => inflight.delete(key)); inflight.set(key, promise); return promise; }
 function setUniversity(key) { if (!UNIVERSITIES[key]) return; root.dataset.university = key; try { localStorage.setItem('presence-university', key); } catch {} $$('.uni-switch button').forEach(b => b.setAttribute('aria-checked', String(b.dataset.uni === key))); $$('[data-uni-text]').forEach(el => { el.textContent = UNIVERSITIES[key][el.dataset.uniText]; }); document.title = `Presence · ${UNIVERSITIES[key].name} Attendance`; drawResults(); }
 function setTheme(mode) { root.dataset.theme = mode; try { localStorage.setItem('presence-theme', mode); } catch {} $('#theme-btn').setAttribute('aria-pressed', String(mode === 'dark')); $('#theme-btn').setAttribute('aria-label', mode === 'dark' ? 'Light mode' : 'Dark mode'); }
@@ -47,7 +56,7 @@ async function signedIn(payload) {
   if (!teacher()) { $('#session-status-text').textContent = 'Student history'; return loadHistory(); }
   const data = await api('/groups'); if (version !== contextVersion) return; state.groups = data.groups;
   $('#group-select').innerHTML = '<option value="">Choose a course section</option>' + data.groups.map(g => `<option value="${esc(g.id)}">${esc(g.course_code)} · ${esc(g.name)} (${esc(g.code)})</option>`).join('');
-  if (data.groups.length) { const preferred = data.groups.find(g => g.code === 'PRESENCE-TEAM-REFERENCES') || data.groups[0]; $('#group-select').value = preferred.id; await chooseGroup(preferred.id); } else $('#sync-status').textContent = 'No course sections are assigned to this account.';
+  if (data.groups.length) { const preferred = data.groups.find(g => g.code === 'CLS-101') || data.groups.find(g => g.code === 'PRESENCE-TEAM-REFERENCES') || data.groups[0]; $('#group-select').value = preferred.id; await chooseGroup(preferred.id); } else $('#sync-status').textContent = 'No course sections are assigned to this account.';
 }
 async function reconnect() { const version = contextVersion; $('#reconnect-btn').disabled = true; $('#connection-message').textContent = 'Connecting to the attendance backend…'; try { const payload = await api('/me'); if (version === contextVersion) await signedIn(payload); } catch (error) { $('#connection-panel').hidden = false; $('#connection-message').textContent = error.status === 401 ? 'No authorized backend session is connected. Attendance recording is unavailable.' : `Attendance server unavailable: ${error.message}`; } finally { $('#reconnect-btn').disabled = false; } }
 $('#reconnect-btn').addEventListener('click', reconnect);
@@ -167,15 +176,20 @@ async function checkIn(studentId, source = 'teacher', confidence) {
     if (version !== contextVersion) return true;
     dashboardVersion++;
     if (!['present', 'late'].includes(data.record.status)) { await refresh(); notify('An existing absence requires a correction with a reason. No check-in was recorded.'); return false; }
-    const savedStudent = studentById(student.id);
-    if (savedStudent) Object.assign(savedStudent, { status: data.record.status, recordId: data.record.id, time: data.record.checked_in_at, source });
-    state.dashboard = null; render();
-    document.dispatchEvent(new CustomEvent('presence:checkin', { detail: { studentId: student.id, sessionId, recordId: data.record.id, status: data.record.status, source, time: data.record.checked_in_at } }));
-    notify(`${student.name} checked in and saved, ${STATUS_LABEL[data.record.status].toLowerCase()}.`);
-    // The write is acknowledged even if the subsequent dashboard request fails.
-    await refresh().catch(() => {});
-    return true;
+    return applySavedCheckin(student.id, sessionId, data.record, source);
   });
+}
+function applySavedCheckin(studentId, sessionId, record, source) {
+  const student = studentById(studentId);
+  if (!student || !['present', 'late'].includes(record?.status)) return false;
+  Object.assign(student, { status: record.status, recordId: record.id, time: record.checked_in_at, source });
+  state.dashboard = null; render();
+  document.dispatchEvent(new CustomEvent('presence:checkin', { detail: { studentId: student.id, sessionId, recordId: record.id, status: record.status, source, time: record.checked_in_at } }));
+  notify(`${student.name} checked in and saved, ${STATUS_LABEL[record.status].toLowerCase()}.`);
+  // The check-in response is authoritative. Refresh the dashboard in the
+  // background so network latency there does not delay the saved state.
+  refresh().catch(() => {});
+  return true;
 }
 async function confirmAttendance(studentId = $('#checkin-student').value, automatic = false) {
   const student = studentById(studentId);
@@ -185,9 +199,21 @@ async function confirmAttendance(studentId = $('#checkin-student').value, automa
   const current = () => version === contextVersion && teacher() && String(state.group?.id) === String(groupId) && (!automatic || cam.mode === 'live');
   const saving = singleFlight(`confirm:${version}:${groupId}:${studentId}`, async () => {
     if (!current()) return false;
-    await singleFlight(`prepare:${version}:${groupId}`, async () => {
+    const prepared = await singleFlight(`prepare:${version}:${groupId}`, async () => {
     if (!current()) return;
     if (!state.session) {
+      if (automatic) {
+        const data = await api(`/groups/${groupId}/checkins`, { personId: student.id });
+        if (!current()) return;
+        if (!data.session || !data.record || !Array.isArray(data.roster)) return;
+        state.session = data.session; state.sessions.unshift(data.session); state.students = mapRoster(data.roster);
+        $('#session-select').innerHTML = '<option value="">Choose a session</option>' + state.sessions.map(s => `<option value="${esc(s.id)}">${esc(fmtDate(s.starts_at))} · ${esc(s.status)}</option>`).join('');
+        $('#session-select').value = data.session.id;
+        if (!['present', 'late'].includes(data.record.status)) { dashboardVersion++; refresh().catch(() => {}); return; }
+        dashboardVersion++;
+        applySavedCheckin(student.id, data.session.id, data.record, 'teacher');
+        return { savedStudentId: String(student.id) };
+      }
       const startsAt = new Date(), endsAt = new Date(startsAt.getTime() + 60 * 60000);
       const data = await singleFlight(`create:${groupId}`, () => api(`/groups/${groupId}/sessions`, { startsAt: startsAt.toISOString(), endsAt: endsAt.toISOString(), lateAfterMinutes: 15 }));
       if (!current()) return false;
@@ -202,6 +228,7 @@ async function confirmAttendance(studentId = $('#checkin-student').value, automa
     }
     });
     if (!current() || state.session?.status !== 'open') return false;
+    if (String(prepared?.savedStudentId) === String(studentId)) return true;
     return checkIn(studentId, 'teacher');
   });
   updateControls();
@@ -349,7 +376,7 @@ let approvalDialogContext;
 function submitApproval() { if (approvalDialogContext?.version !== contextVersion || String(approvalDialogContext?.sessionId) !== String(state.session?.id)) return; const version = contextVersion; return approveAndNext().catch(error => { if (version === contextVersion) notify(`Could not approve attendance: ${error.message} Retry Approve attendance.`); }); }
 $('#approve-btn').addEventListener('click', () => { if (!canCheckIn()) return; approvalDialogContext = { sessionId: state.session.id, version: contextVersion }; const c = counts(); $('#dialog-text').textContent = `${c.present} present, ${c.late} late, ${c.absent} absent, ${c.pending} not seen. Approval saves and closes this session in ${state.group.code}, then opens a fresh one-hour session with everyone not seen yet. The camera keeps running.`; if (typeof dialog.showModal === 'function') dialog.showModal(); else if (confirm($('#dialog-text').textContent)) return submitApproval(); });
 dialog.addEventListener('close', () => { if (dialog.returnValue === 'approve') return submitApproval(); });
-window.Presence = Object.freeze({ recognize, getVideo: () => video, getRoster: () => state.students.map(s => ({ ...s })), setRoster: () => refresh(), refresh, checkIn, getContext: () => ({ groupId: state.group?.id, groupCode: state.group?.code, version: contextVersion, mode: cam.mode, teacher: teacher() }), faceRequest: (groupId, action, body) => api(`/groups/${groupId}/faces/${action}`, body), thresholds: THRESHOLDS });
+window.Presence = Object.freeze({ recognize, getVideo: () => video, getRoster: () => state.students.map(s => ({ ...s })), setRoster: () => refresh(), refresh, checkIn, getContext: () => ({ userId: state.user?.id, groupId: state.group?.id, groupCode: state.group?.code, sessionId: state.session?.id, sessionStartsAt: state.session?.starts_at, sessionEndsAt: state.session?.ends_at, version: contextVersion, mode: cam.mode, teacher: teacher() }), recordingRequest, faceRequest: (groupId, action, body) => api(`/groups/${groupId}/faces/${action}`, body), thresholds: THRESHOLDS });
 $$('img[data-logo]').forEach(img => { const loaded = () => { if (img.naturalWidth) img.closest('.logo__slot').classList.add('has-img'); }; if (img.complete) loaded(); else img.addEventListener('load', loaded); });
 let savedUniversity = root.dataset.university || 'ucf', savedTheme = root.dataset.theme || 'light';
 try { savedUniversity = localStorage.getItem('presence-university') || savedUniversity; savedTheme = localStorage.getItem('presence-theme') || (globalThis.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); } catch {}

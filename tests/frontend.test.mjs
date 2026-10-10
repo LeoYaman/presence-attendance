@@ -359,34 +359,30 @@ test('automatic attendance uses strict SFace similarity and rejects unknown, unm
   assert.equal(h.element('#match-level').textContent, 'Present · saved');
 });
 
-test('the first qualifying live face creates, opens and saves once despite repeated frames', async () => {
-  const h = harness(), creation = deferred(), save = deferred(); h.state.session = null; h.cam.mode = 'live'; h.state.group.code = 'PRESENCE-TEAM-REFERENCES'; h.render();
+test('the first qualifying live face atomically creates an open session and saves once despite repeated frames', async () => {
+  const h = harness(), atomic = deferred(); h.state.session = null; h.cam.mode = 'live'; h.state.group.code = 'PRESENCE-TEAM-REFERENCES'; h.render();
   assert.equal(h.requests.filter(r => r.options.method === 'POST').length, 0);
   assert.equal(h.element('#checkin-form').hidden, true);
-  let written = false;
-  h.handle(path => path === '/api/groups/g1/sessions' ? creation.promise : path.endsWith('/open') ? response({ session: { ...h.state.session, status: 'open' } }) : path.endsWith('/checkins') ? save.promise : response(h.dashboard(written ? 'present' : 'pending', 'open')));
+  h.handle(path => path === '/api/groups/g1/checkins' ? atomic.promise : response(h.dashboard('present', 'open')));
   h.recognizeServer([sface()]); h.recognizeServer([sface()]); await settle();
-  const request = h.requests.find(r => r.path === '/api/groups/g1/sessions');
+  const request = h.requests.find(r => r.path === '/api/groups/g1/checkins');
   assert.ok(request); assert.equal(h.requests.filter(r => r.path === request.path).length, 1);
-  const body = JSON.parse(request.options.body);
-  creation.resolve(response({ session: { id: 'automatic-session', status: 'planned', starts_at: body.startsAt, ends_at: body.endsAt, late_after_minutes: body.lateAfterMinutes } })); await settle();
-  assert.equal(h.requests.filter(r => r.path.endsWith('/open')).length, 1);
+  assert.deepEqual(JSON.parse(request.options.body), { personId: 'p1' });
+  atomic.resolve(response({ session: { id: 'automatic-session', status: 'open', starts_at: '2026-10-10T12:00:00Z', ends_at: '2026-10-10T13:00:00Z' }, record: h.record, roster: [{ person_id: 'p1', person_code: '001', full_name: 'Test Student', record_id: 'r1', status: 'present', checked_in_at: h.record.checked_in_at, source: 'teacher' }] })); await settle();
   h.recognizeServer([sface()]); await settle();
-  assert.equal(h.requests.filter(r => r.path.endsWith('/checkins')).length, 1);
-  written = true; save.resolve(response({ record: h.record })); await settle();
-  h.recognizeServer([sface()]); await settle();
-  assert.equal(h.requests.filter(r => r.path.endsWith('/checkins')).length, 1);
+  assert.equal(h.requests.filter(r => r.path === '/api/groups/g1/checkins').length, 1);
+  assert.equal(h.requests.filter(r => /^\/api\/sessions\/.*\/checkins$/.test(r.path)).length, 0);
+  assert.equal(h.requests.filter(r => r.path.endsWith('/open')).length, 0);
   assert.equal(h.events.filter(e => e.type === 'presence:checkin').length, 1);
   assert.equal(h.state.students[0].status, 'present'); assert.equal(h.cam.mode, 'live');
 });
 
 test('two faces share session preparation and each gets its own saved check-in', async () => {
-  const h = harness(), creation = deferred(); h.state.session = null; h.cam.mode = 'live';
+  const h = harness(), atomic = deferred(); h.state.session = null; h.cam.mode = 'live';
   h.state.students.push({ id: 'p2', name: 'Second Student', number: '002', status: 'pending' });
   const saved = new Set();
   h.handle((path, options) => {
-    if (path === '/api/groups/g1/sessions') return creation.promise;
-    if (path.endsWith('/open')) return response({ session: { ...h.state.session, status: 'open' } });
+    if (path === '/api/groups/g1/checkins') return atomic.promise;
     if (path.endsWith('/checkins')) { const id = JSON.parse(options.body).personId; saved.add(id); return response({ record: { ...h.record, id: `record-${id}` } }); }
     const dashboard = h.dashboard(saved.has('p1') ? 'present' : 'pending'); dashboard.session.status = 'open';
     dashboard.roster.push({ person_id: 'p2', person_code: '002', full_name: 'Second Student', status: saved.has('p2') ? 'present' : 'pending', record_id: 'record-p2' });
@@ -395,12 +391,28 @@ test('two faces share session preparation and each gets its own saved check-in',
   });
   const faces = [sface(), sface({ studentId: 'p2' })];
   h.recognizeServer(faces); await settle();
-  assert.equal(h.requests.filter(r => r.path === '/api/groups/g1/sessions').length, 1);
-  const body = JSON.parse(h.requests.find(r => r.path === '/api/groups/g1/sessions').options.body);
-  creation.resolve(response({ session: { id: 'both-faces', status: 'planned', starts_at: body.startsAt, ends_at: body.endsAt } })); await settle(); await settle();
-  assert.equal(h.requests.filter(r => r.path.endsWith('/open')).length, 1);
+  assert.equal(h.requests.filter(r => r.path === '/api/groups/g1/checkins').length, 1);
+  assert.equal(h.requests.filter(r => r.path.endsWith('/checkins')).length, 1);
+  saved.add('p1');
+  atomic.resolve(response({ session: { id: 'both-faces', status: 'open', starts_at: '2026-10-10T12:00:00Z' }, record: { ...h.record, id: 'record-p1' }, roster: [
+    { person_id: 'p1', person_code: '001', full_name: 'Test Student', record_id: 'record-p1', status: 'present', checked_in_at: h.record.checked_in_at },
+    { person_id: 'p2', person_code: '002', full_name: 'Second Student', status: 'pending' },
+  ] })); await settle(); await settle();
+  assert.equal(h.requests.filter(r => r.path.endsWith('/open')).length, 0);
   assert.deepEqual([...saved].sort(), ['p1', 'p2']); assert.ok(h.state.students.every(student => student.status === 'present'));
   h.recognizeServer(faces); await settle(); assert.equal(h.requests.filter(r => r.path.endsWith('/checkins')).length, 2);
+});
+
+test('context change discards an in-flight atomic first check-in response', async () => {
+  const h = harness(), gate = deferred(); h.state.session = null; h.cam.mode = 'live';
+  h.handle(path => path === '/api/groups/g1/checkins' ? gate.promise : response({ sessions: [], roster: [] }));
+  h.recognizeServer([sface()]); await settle();
+  assert.equal(h.requests.filter(r => r.path === '/api/groups/g1/checkins').length, 1);
+  await h.chooseGroup('other-group');
+  gate.resolve(response({ session: { id: 'old-session', status: 'open' }, record: h.record, roster: [{ person_id: 'p1', person_code: '001', full_name: 'Test Student', status: 'present' }] })); await settle();
+  assert.equal(h.state.group, null); assert.equal(h.state.session, null); assert.equal(h.state.students.length, 0);
+  assert.equal(h.events.filter(e => e.type === 'presence:checkin').length, 0);
+  assert.equal(h.requests.some(r => r.path === '/api/sessions/old-session/dashboard'), false);
 });
 
 test('failed automatic writes keep attendance pending and retry after the cooldown', async () => {
@@ -437,12 +449,13 @@ test('automatic attendance cannot open closed, future or expired sessions and ke
 });
 
 test('automatic session preparation discards responses after the course changes', async () => {
-  const h = harness(), creation = deferred(); h.cam.mode = 'live'; h.state.session = null;
-  h.handle(() => creation.promise); h.recognizeServer([sface()]); await settle();
+  const h = harness(), atomic = deferred(); h.cam.mode = 'live'; h.state.session = null;
+  h.handle(path => path === '/api/groups/g1/checkins' ? atomic.promise : response({ sessions: [], roster: [] })); h.recognizeServer([sface()]); await settle();
   await h.chooseGroup('unknown-group');
-  creation.resolve(response({ session: { id: 'old-course-session', status: 'planned', starts_at: '2026-10-10T12:00:00Z', ends_at: '2026-10-10T13:00:00Z' } })); await settle();
+  atomic.resolve(response({ session: { id: 'old-course-session', status: 'open', starts_at: '2026-10-10T12:00:00Z', ends_at: '2026-10-10T13:00:00Z' }, record: h.record, roster: [] })); await settle();
   assert.equal(h.state.group, null); assert.equal(h.state.session, null);
-  assert.equal(h.requests.filter(r => r.path.endsWith('/open') || r.path.endsWith('/checkins')).length, 0);
+  assert.equal(h.events.filter(e => e.type === 'presence:checkin').length, 0);
+  assert.equal(h.requests.some(r => r.path.endsWith('/open') || r.path === '/api/sessions/old-course-session/checkins'), false);
 });
 
 test('a second saved face updates the current roster after the first face refresh replaces it', async () => {

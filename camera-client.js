@@ -35,7 +35,7 @@ async function detect(token) {
   if (!initial.teacher || !initial.groupId) { status.textContent = 'Connect a teacher session and choose a course to enable face matching.'; schedule(token); return; }
   if (busy || enrolling) { schedule(token); return; }
   busy = true; controls();
-  let failed = false, retryDelay = 650;
+  let failed = false, retryDelay = 100;
   try {
     const result = await api().faceRequest(initial.groupId, 'detect', { image: frame() });
     if (!current(token, initial)) return;
@@ -49,7 +49,7 @@ async function detect(token) {
     if (current(token, initial)) { api().recognize([]); status.textContent = error.message + (failed ? ' Stop and start the camera after fixing setup.' : ' Retrying shortly…'); }
   } finally { busy = false; controls(); if ((!failed || !current(token, initial)) && token === generation) schedule(token, retryDelay); }
 }
-function schedule(token, delay = 650) { clearTimeout(timer); timer = setTimeout(() => detect(token), delay); }
+function schedule(token, delay = 100) { clearTimeout(timer); timer = setTimeout(() => detect(token), delay); }
 document.addEventListener('presence:camera-start', () => { const token = ++generation; status.textContent = 'Connecting to local face service…'; controls(); detect(token); });
 document.addEventListener('presence:camera-stop', () => { generation++; clearTimeout(timer); controls(); });
 enroll.addEventListener('click', async () => {

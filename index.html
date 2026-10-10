@@ -69,7 +69,7 @@
     <div id="teacher-content">
     <section class="session-controls" aria-label="Course and session controls">
       <div class="session-selectors">
-        <label>Course section<select id="group-select" class="field"><option value="">Choose a course section</option></select></label>
+        <label>Choose course<select id="group-select" class="field"><option value="">Choose a course section</option></select></label>
         <label>Session<select id="session-select" class="field"><option value="">Choose a session</option></select></label>
         <button type="button" class="button" id="open-session-btn" disabled>Open session</button>
         <button type="button" class="button button--secondary" id="refresh-btn" disabled>Refresh</button>
@@ -146,6 +146,15 @@
           <p class="integration-note" id="camera-device-status" role="status">Choose which camera to use for face matching.</p>
         </div>
         <p class="integration-note camera-warning" id="camera-warning" role="status"></p>
+
+        <section class="recording-panel" aria-labelledby="recording-title">
+          <div class="recording-panel__heading"><h2 id="recording-title">Class recording</h2><span id="recording-state" role="status">Waiting for live camera</span></div>
+          <p class="integration-note">Live camera attendance is recorded and retained for 7 days. Synthetic demos are never recorded. Long recordings split automatically into segments.</p>
+          <p id="recording-error" class="recording-error" role="alert" hidden></p>
+          <div id="recording-list" class="recording-list" aria-label="Saved class recordings"></div>
+          <video id="recording-player" controls playsinline preload="metadata" aria-label="Class recording playback" hidden></video>
+          <div id="recording-jumps" class="recording-jumps" aria-label="Jump to student check-ins"></div>
+        </section>
 
         <!-- Recognition result -->
         <section class="match" id="recognition" aria-label="Identification result" aria-live="polite">
@@ -242,5 +251,6 @@
 
   <script src="app.js" type="module"></script>
   <script src="camera-client.js" type="module"></script>
+  <script src="recording-client.js" type="module"></script>
 </body>
 </html>

@@ -220,3 +220,6 @@ table { font-size:13px; } th { background:var(--surface); color:var(--secondary)
 .badge { border-radius:var(--radius-btn); font-size:12px; } .success { background:color-mix(in srgb,var(--present) 12%,var(--surface)); color:var(--present); } .failed { background:color-mix(in srgb,var(--absent) 12%,var(--surface)); color:var(--absent); } .pending { background:color-mix(in srgb,var(--late) 12%,var(--surface)); color:var(--late); } .neutral { background:var(--surface); color:var(--secondary); }
 .skip-link { background:var(--action); color:var(--on-action); border-radius:var(--radius-btn); }
 @media(max-width:680px) { .profile { margin-left:0; } .appearance-controls { width:100%; } h1 { font-size:32px; } .sidebar { border-bottom:0; } }
+
+/* ORL sample student portraits */
+.student-photo { display: block; width: 46px; height: 56px; object-fit: contain; border-radius: 4px; }

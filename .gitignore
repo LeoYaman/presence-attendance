@@ -9,4 +9,8 @@ face_data/attendance/
 node_modules/
 .pnpm-store/
 .local-db/
+.recordings/
+.tools/
+.tmp/
+.recording-test-*/
 *.log

@@ -11,6 +11,20 @@ test('local data survives restart and concurrent transactions stay isolated',asy
   try{
     local=await openLocalDatabase(path);
     await transaction(local.pool,db=>seedDemo(db,'Local-test-password-2026'));
+    const dump=local.engine.dumpDataDir.bind(local.engine);
+    let snapshots=0;
+    local.engine.dumpDataDir=async(...args)=>{snapshots++;return dump(...args);};
+    await transaction(local.pool,async db=>{
+      assert.equal((await db.query('SELECT count(*)::int AS n FROM attendance.people')).rows[0].n,8);
+    },{readOnly:true});
+    assert.equal(snapshots,0,'face roster reads must not export the entire database');
+    await assert.rejects(transaction(local.pool,db=>db.query("UPDATE attendance.people SET full_name='Forbidden'"),{readOnly:true}),/read.only/i);
+    assert.equal(snapshots,0);
+    await transaction(local.pool,async db=>{
+      await db.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');
+      await db.query('SELECT count(*) FROM attendance.attendance_records');
+    });
+    assert.equal(snapshots,0,'dashboard reads must not export the entire database');
     await Promise.all([
       assert.rejects(transaction(local.pool,async db=>{await db.query("UPDATE attendance.people SET full_name='Rolled back'"); throw new Error('rollback');}),/rollback/),
       transaction(local.pool,async db=>assert.equal((await db.query("SELECT count(*)::int AS n FROM attendance.people WHERE full_name='Rolled back'")).rows[0].n,0))

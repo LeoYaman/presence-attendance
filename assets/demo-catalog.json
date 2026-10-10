@@ -1,0 +1,227 @@
+{
+  "test_only": true,
+  "courses": [
+    {
+      "id": "CLS-101",
+      "code": "CS101",
+      "name": "Introduction to Programming and Computer Science",
+      "instructor": "Jordan Lee",
+      "schedule": "Mon / Wed / Fri \u00b7 09:00 AM"
+    },
+    {
+      "id": "CLS-201",
+      "code": "CS201",
+      "name": "Fundamentals of Programming",
+      "instructor": "Jordan Lee",
+      "schedule": "Mon / Wed / Fri \u00b7 08:00 AM"
+    },
+    {
+      "id": "CLS-301",
+      "code": "CS301",
+      "name": "Software Construction",
+      "instructor": "Jordan Lee",
+      "schedule": "Mon / Wed / Fri \u00b7 11:00 AM"
+    },
+    {
+      "id": "CLS-401",
+      "code": "CS401",
+      "name": "Mathematics for Computer Science",
+      "instructor": "Jordan Lee",
+      "schedule": "Mon / Wed / Fri \u00b7 10:00 AM"
+    },
+    {
+      "id": "CLS-501",
+      "code": "CS501",
+      "name": "Introduction to Algorithms",
+      "instructor": "Jordan Lee",
+      "schedule": "Mon / Wed / Fri \u00b7 12:00 PM"
+    },
+    {
+      "id": "CLS-601",
+      "code": "CS601",
+      "name": "Computability and Complexity Theory",
+      "instructor": "Jordan Lee",
+      "schedule": "Mon / Wed / Fri \u00b7 01:00 PM"
+    },
+    {
+      "id": "CLS-701",
+      "code": "CS701",
+      "name": "Computer Systems Engineering",
+      "instructor": "Jordan Lee",
+      "schedule": "Mon / Wed / Fri \u00b7 02:00 PM"
+    },
+    {
+      "id": "CLS-801",
+      "code": "CS801",
+      "name": "Operating System Engineering",
+      "instructor": "Jordan Lee",
+      "schedule": "Mon / Wed / Fri \u00b7 03:00 PM"
+    },
+    {
+      "id": "CLS-901",
+      "code": "CS901",
+      "name": "Database Systems",
+      "instructor": "Jordan Lee",
+      "schedule": "Mon / Wed / Fri \u00b7 04:00 PM"
+    },
+    {
+      "id": "CLS-1001",
+      "code": "CS1001",
+      "name": "Computation Structures",
+      "instructor": "Jordan Lee",
+      "schedule": "Mon / Wed / Fri \u00b7 05:00 PM"
+    }
+  ],
+  "students": [
+    {
+      "id": "STU-1001",
+      "name": "Emma Wilson",
+      "photo": "assets/student-photos/STU-1001-emma-wilson.png"
+    },
+    {
+      "id": "STU-1002",
+      "name": "Noah Davis",
+      "photo": "assets/student-photos/STU-1002-noah-davis.png"
+    },
+    {
+      "id": "STU-1003",
+      "name": "Olivia Chen",
+      "photo": "assets/student-photos/STU-1003-olivia-chen.png"
+    },
+    {
+      "id": "STU-1004",
+      "name": "Liam Patel",
+      "photo": "assets/student-photos/STU-1004-liam-patel.png"
+    },
+    {
+      "id": "STU-1005",
+      "name": "Ava Robinson",
+      "photo": "assets/student-photos/STU-1005-ava-robinson.png"
+    },
+    {
+      "id": "STU-1006",
+      "name": "Ethan Brooks",
+      "photo": "assets/student-photos/STU-1006-ethan-brooks.png"
+    },
+    {
+      "id": "STU-1007",
+      "name": "Sophia Martinez",
+      "photo": "assets/student-photos/STU-1007-sophia-martinez.png"
+    },
+    {
+      "id": "STU-1008",
+      "name": "Mason Turner",
+      "photo": "assets/student-photos/STU-1008-mason-turner.png"
+    },
+    {
+      "id": "STU-1009",
+      "name": "Isabella Nguyen",
+      "photo": "assets/student-photos/STU-1009-isabella-nguyen.png"
+    },
+    {
+      "id": "STU-1010",
+      "name": "Lucas Rivera",
+      "photo": "assets/student-photos/STU-1010-lucas-rivera.png"
+    },
+    {
+      "id": "STU-1011",
+      "name": "Mia Thompson",
+      "photo": "assets/student-photos/STU-1011-mia-thompson.png"
+    },
+    {
+      "id": "STU-1012",
+      "name": "James Cooper",
+      "photo": "assets/student-photos/STU-1012-james-cooper.png"
+    },
+    {
+      "id": "STU-1013",
+      "name": "Amelia Foster",
+      "photo": "assets/student-photos/STU-1013-amelia-foster.png"
+    },
+    {
+      "id": "STU-1014",
+      "name": "Benjamin Reed",
+      "photo": "assets/student-photos/STU-1014-benjamin-reed.png"
+    },
+    {
+      "id": "STU-1015",
+      "name": "Charlotte Kim",
+      "photo": "assets/student-photos/STU-1015-charlotte-kim.png"
+    },
+    {
+      "id": "STU-1016",
+      "name": "Henry Ward",
+      "photo": "assets/student-photos/STU-1016-henry-ward.png"
+    },
+    {
+      "id": "STU-1017",
+      "name": "Harper Bailey",
+      "photo": "assets/student-photos/STU-1017-harper-bailey.png"
+    },
+    {
+      "id": "STU-1018",
+      "name": "Alexander Price",
+      "photo": "assets/student-photos/STU-1018-alexander-price.png"
+    },
+    {
+      "id": "STU-1019",
+      "name": "Evelyn Scott",
+      "photo": "assets/student-photos/STU-1019-evelyn-scott.png"
+    },
+    {
+      "id": "STU-1020",
+      "name": "Daniel Green",
+      "photo": "assets/student-photos/STU-1020-daniel-green.png"
+    },
+    {
+      "id": "STU-1021",
+      "name": "Grace Mitchell",
+      "photo": "assets/student-photos/STU-1021-grace-mitchell.png"
+    },
+    {
+      "id": "STU-1022",
+      "name": "Elijah Carter",
+      "photo": "assets/student-photos/STU-1022-elijah-carter.png"
+    },
+    {
+      "id": "STU-1023",
+      "name": "Zoe Phillips",
+      "photo": "assets/student-photos/STU-1023-zoe-phillips.png"
+    },
+    {
+      "id": "STU-1024",
+      "name": "Caleb Morgan",
+      "photo": "assets/student-photos/STU-1024-caleb-morgan.png"
+    },
+    {
+      "id": "STU-1025",
+      "name": "Nora Sullivan",
+      "photo": "assets/student-photos/STU-1025-nora-sullivan.png"
+    },
+    {
+      "id": "STU-1026",
+      "name": "Isaac Bennett",
+      "photo": "assets/student-photos/STU-1026-isaac-bennett.png"
+    },
+    {
+      "id": "STU-1027",
+      "name": "Lily Ramirez",
+      "photo": "assets/student-photos/STU-1027-lily-ramirez.png"
+    },
+    {
+      "id": "STU-1028",
+      "name": "Owen Peterson",
+      "photo": "assets/student-photos/STU-1028-owen-peterson.png"
+    },
+    {
+      "id": "STU-1029",
+      "name": "Maya Collins",
+      "photo": "assets/student-photos/STU-1029-maya-collins.png"
+    },
+    {
+      "id": "STU-1030",
+      "name": "Julian Hayes",
+      "photo": "assets/student-photos/STU-1030-julian-hayes.png"
+    }
+  ]
+}

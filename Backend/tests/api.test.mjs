@@ -160,9 +160,10 @@ test('face clear is scoped to the authorized group and worker errors map to API 
 
 test('saved reference mappings are server-owned and restricted to active roster people',async () => {
   const path=`/api/groups/${id.group}/faces/detect`;
+  const jpeg=Buffer.concat([Buffer.from([255,216,255]),Buffer.alloc(100),Buffer.from([255,217])]);
   for(const [key,person] of [['team_leo',id.alice],['team_anthony',id.inactive],['team_olivia',id.bob]]) {
     await query(`INSERT INTO attendance.team_face_references(reference_key,group_id,person_id,source_path,source_commit,image_sha256,image_bytes,is_active)
-      VALUES($1,$2,$3,$4,$5,$6,$7,$8)`,[key,id.group,person,`face_data/people_faces/WIN_${key==='team_leo'?'1':key==='team_anthony'?'2':'3'}_Pro.jpg`,'a'.repeat(40),'b'.repeat(64),Buffer.alloc(100),key!=='team_olivia']);
+      VALUES($1,$2,$3,$4,$5,$6,$7,$8)`,[key,id.group,person,`face_data/people_faces/WIN_${key==='team_leo'?'1':key==='team_anthony'?'2':'3'}_Pro.jpg`,'a'.repeat(40),'b'.repeat(64),jpeg,key!=='team_olivia']);
   }
   try {
     faceCalls=[];
@@ -171,7 +172,47 @@ test('saved reference mappings are server-owned and restricted to active roster 
     assert.equal(faceCalls.length,0);
     assert.equal((await request(path,{actor:teacher,body:{image:'eA=='}})).status,200);
     assert.deepEqual(faceCalls[0].referenceMappings,[{referenceKey:'team_leo',personId:id.alice}]);
+    const portraitPath='/api/team-portraits/team_leo';
+    assert.equal((await request(portraitPath)).status,401);
+    for(const actor of [otherTeacher,student]) assert.equal((await request(portraitPath,{actor})).status,403);
+    const portrait=await fetch(origin+portraitPath,{headers:{Cookie:teacher.cookie}});
+    assert.equal(portrait.status,200);assert.equal(portrait.headers.get('content-type'),'image/jpeg');
+    assert.equal(portrait.headers.get('cache-control'),'no-store');
+    assert.deepEqual(Buffer.from(await portrait.arrayBuffer()),jpeg);
+    assert.equal((await request('/api/team-portraits/team_anthony',{actor:teacher})).status,404);
+    assert.equal((await request('/api/team-portraits/team_olivia',{actor:teacher})).status,404);
+    assert.equal((await request('/api/team-portraits/unknown',{actor:teacher})).status,404);
   } finally {await query('DELETE FROM attendance.team_face_references WHERE group_id=$1',[id.group]);}
+});
+
+test('references cross enrolled courses only when the teacher also manages the reference source',async()=>{
+  const sourceGroup=randomUUID(),unassignedSource=randomUUID();
+  for(const gid of [sourceGroup,unassignedSource]) await query(`INSERT INTO attendance.groups(id,code,name,course_code,term_name,term_starts_on,term_ends_on)
+    VALUES($1,$2,'Reference source','SRC','Test',current_date-1,current_date+1)`,[gid,'REFERENCE-'+gid]);
+  await query('INSERT INTO attendance.group_staff(group_id,user_id) VALUES($1,$2),($3,$4)',[sourceGroup,id.teacher,unassignedSource,id.otherTeacher]);
+  for(const [key,person,gid,index] of [['team_leo',id.alice,sourceGroup,1],['team_olivia',id.bob,unassignedSource,2],['team_anthony',id.inactive,sourceGroup,3]])
+    await query(`INSERT INTO attendance.team_face_references(reference_key,group_id,person_id,source_path,source_commit,image_sha256,image_bytes)
+      VALUES($1,$2,$3,$4,$5,$6,$7)`,[key,gid,person,`face_data/people_faces/WIN_${index}_Pro.jpg`,'a'.repeat(40),'b'.repeat(64),Buffer.alloc(100)]);
+  const detect=async()=>{
+    faceCalls=[];
+    assert.equal((await request(`/api/groups/${id.group}/faces/detect`,{actor:teacher,body:{image:'eA=='}})).status,200);
+    return faceCalls[0].referenceMappings;
+  };
+  try {
+    assert.deepEqual(await detect(),[{referenceKey:'team_leo',personId:id.alice}]);
+    assert.equal((await request('/api/team-portraits/team_olivia',{actor:teacher})).status,403);
+    await query('INSERT INTO attendance.group_staff(group_id,user_id) VALUES($1,$2)',[unassignedSource,id.teacher]);
+    assert.deepEqual(await detect(),[{referenceKey:'team_leo',personId:id.alice},{referenceKey:'team_olivia',personId:id.bob}]);
+    await query("UPDATE attendance.group_memberships SET left_at=now()-interval '1 second' WHERE group_id=$1 AND person_id=$2",[id.group,id.alice]);
+    assert.deepEqual(await detect(),[{referenceKey:'team_olivia',personId:id.bob}]);
+    await query('UPDATE attendance.groups SET is_active=false WHERE id=$1',[unassignedSource]);
+    assert.deepEqual(await detect(),[]);
+  } finally {
+    await query('UPDATE attendance.group_memberships SET left_at=NULL WHERE group_id=$1 AND person_id=$2',[id.group,id.alice]);
+    await query('DELETE FROM attendance.team_face_references WHERE group_id=ANY($1::uuid[])',[[sourceGroup,unassignedSource]]);
+    await query('DELETE FROM attendance.group_staff WHERE group_id=ANY($1::uuid[])',[[sourceGroup,unassignedSource]]);
+    await query('DELETE FROM attendance.groups WHERE id=ANY($1::uuid[])',[[sourceGroup,unassignedSource]]);
+  }
 });
 test('opening roster, teacher check-in and retry deduplicate raw event history',async () => {
   const result=await request(`/api/sessions/${id.session}/open`,{actor:teacher,body:{}}); assert.equal(result.status,200); assert.equal(result.body.participants,2); session=result.body.session;
@@ -357,14 +398,44 @@ test('approve-next rolls back old finalization, new roster and events if success
   assert.equal((await request(`/api/sessions/${sid}/approve-next`,{actor:teacher,body:{}})).status,200);
 });
 
+test('atomic first check-in creates one session, enforces scope and rolls back invalid attendance',async()=>{
+  const group=randomUUID();
+  await query(`INSERT INTO attendance.groups(id,code,name,course_code,term_name,term_starts_on,term_ends_on,time_zone)
+    VALUES($1,$2,'Atomic test','API','Test',current_date-1,current_date+1,'America/New_York')`,[group,'ATOMIC-'+group]);
+  await query('INSERT INTO attendance.group_staff(group_id,user_id) VALUES($1,$2)',[group,id.teacher]);
+  await query(`INSERT INTO attendance.group_memberships(group_id,person_id,joined_at)
+    VALUES($1,$2,now()-interval '1 day'),($1,$3,now()-interval '1 day')`,[group,id.alice,id.bob]);
+  const path=`/api/groups/${group}/checkins`;
+  assert.equal((await request(path,{actor:student,body:{personId:id.alice}})).status,403);
+  assert.equal((await request(path,{actor:otherTeacher,body:{personId:id.alice}})).status,403);
+  assert.equal((await request(path,{actor:teacher,body:{personId:id.alice,confidence:1}})).status,400);
+  const invalid=await request(path,{actor:teacher,body:{personId:id.inactive}});
+  assert.notEqual(invalid.status,200);
+  assert.equal((await one('SELECT count(*)::int AS n FROM attendance.attendance_sessions WHERE group_id=$1',[group])).n,0);
+  const results=await Promise.all([id.alice,id.bob].map(personId=>request(path,{actor:teacher,body:{personId}})));
+  for(const result of results){assert.equal(result.status,200);assert.equal(result.body.session.status,'open');assert.equal(result.body.record.status,'present');assert.equal(result.body.roster.length,2);}
+  assert.equal(results[0].body.session.id,results[1].body.session.id);
+  const repeated=await request(path,{actor:teacher,body:{personId:id.alice}});
+  assert.equal(repeated.body.record.id,results[0].body.record.id);
+  assert.equal((await one('SELECT count(*)::int AS n FROM attendance.attendance_sessions WHERE group_id=$1',[group])).n,1);
+});
+
 test('static allowlist blocks credentials/datasets; logout, inactive accounts and expiry revoke access',async () => {
   for (const path of ['/login.html','/student.html','/AdminPage/overview.html','/teacherPortal/index.html','/Frontend/Studentpage/index.html',
-    '/student.css?v=preview','/AdminPage/admin.css?v=preview','/student.js','/assets/ucf-logo.png']) {
+    '/student.css?v=preview','/AdminPage/admin.css?v=preview','/student.js','/assets/ucf-logo.png',
+    '/assets/student-photos/STU-1001-emma-wilson.png','/assets/student-photos/STU-1030-julian-hayes.png',
+    '/assets/student-photos/mapping.json']) {
     const response=await fetch(`${origin}${path}`);
     assert.equal(response.status,200,path);
     assert.ok(response.headers.get('content-type'),path);
   }
   for (const path of ['/Backend/.env','/face_data/README.txt','/.git/config']) assert.equal((await fetch(`${origin}${path}`)).status,404);
+  for (const path of ['/teacherPortal/index.html','/Frontend/Teacherpage/index.html']) {
+    const response=await fetch(`${origin}${path}`,{redirect:'manual'});
+    assert.equal(response.status,303);
+    assert.equal(response.headers.get('location'),'/index.html');
+  }
+  assert.equal((await fetch(`${origin}/assets/student-photos/unknown.png`)).status,404);
   await query('UPDATE attendance.users SET is_active=false WHERE id=$1',[id.otherTeacher]); assert.equal((await request('/api/me',{actor:otherTeacher})).status,401);
   await query("UPDATE attendance.auth_sessions SET expires_at=now()-interval '59 minutes',created_at=now()-interval '1 hour' WHERE user_id=$1",[id.student]);
   assert.equal((await request('/api/me',{actor:student})).status,401);

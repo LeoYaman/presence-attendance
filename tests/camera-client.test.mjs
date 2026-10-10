@@ -141,7 +141,7 @@ test('session rollover discards the old frame and continues detection without re
   gate.resolve({matches:[match],sampleCounts:{}}); await settle();
   assert.deepEqual(h.recognized, []);
   assert.equal(h.timers.size, 1);
-  await h.runTimer(650);
+  await h.runTimer(100);
   assert.equal(h.requests.length, 2);
   assert.equal(h.recognized.length, 1);
   assert.equal(h.recognitionContexts[0].version, 2);

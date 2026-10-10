@@ -24,6 +24,7 @@ export function createFaceWorker({ python = process.env.FACE_PYTHON || fileURLTo
     process.on('exit', () => { if (child === process) { child = null; rejectAll(); } });
   }
   return {
+    start() { if (!child) launch(); },
     request(payload) {
       if (pending.size >= 4) return Promise.reject(Object.assign(new Error('Face service busy; retry shortly.'), { status: 429, code: 'face_service_busy' }));
       if (!child) launch();

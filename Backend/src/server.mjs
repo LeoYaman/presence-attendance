@@ -1,10 +1,14 @@
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
+import { createReadStream } from 'node:fs';
+import { pipeline } from 'node:stream/promises';
 import { timingSafeEqual } from 'node:crypto';
 import { hashPassword, verifyPassword, opaqueToken, tokenDigest, sessionCookie, readSessionCookie } from './auth.mjs';
 import { transaction } from './database.mjs';
 import { syntheticRecognition } from './camera.mjs';
 import { createFaceWorker } from './face-worker.mjs';
+import { createRecordingStore } from './recording-store.mjs';
+import demoCatalog from '../../assets/demo-catalog.json' with { type: 'json' };
 
 export class HttpError extends Error {
   constructor(status, code, message) { super(message); this.status = status; this.code = code; }
@@ -47,14 +51,14 @@ WHERE s.status='closed' AND s.starts_at<=now()
 GROUP BY bucket ORDER BY bucket`;
 
 export function createApp({ pool, publicOrigin = 'http://localhost:3000', secureCookies = false,
-  syntheticCamera = false, frontendRoot = new URL('../../',import.meta.url), recognitionAdapter = syntheticRecognition, faceWorker = createFaceWorker() } = {}) {
+  syntheticCamera = false, frontendRoot = new URL('../../',import.meta.url), recognitionAdapter = syntheticRecognition, faceWorker = createFaceWorker(), recordingStore = createRecordingStore() } = {}) {
   if (!pool) throw new Error('A database pool is required');
   const origin = new URL(publicOrigin).origin;
   if (secureCookies && !origin.startsWith('https://')) throw new Error('Secure cookies require an HTTPS PUBLIC_ORIGIN');
   const attempts = new Map();
   const dummyHashPromise = hashPassword(opaqueToken());
   const staticFiles = new Map([['/', ['index.html','text/html; charset=utf-8']], ['/index.html',['index.html','text/html; charset=utf-8']],
-    ['/app.js',['app.js','text/javascript; charset=utf-8']], ['/camera-client.js',['camera-client.js','text/javascript; charset=utf-8']], ['/styles.css',['styles.css','text/css; charset=utf-8']]]);
+    ['/app.js',['app.js','text/javascript; charset=utf-8']], ['/camera-client.js',['camera-client.js','text/javascript; charset=utf-8']], ['/recording-client.js',['recording-client.js','text/javascript; charset=utf-8']], ['/styles.css',['styles.css','text/css; charset=utf-8']]]);
   // Publish only the UI files; credentials, datasets and backend source stay private.
   const uiFiles = {
     'text/html; charset=utf-8': ['login.html','student.html','admin.html','overview.html','students.html','classes.html','attendance.html','audit-history.html','settings.html',
@@ -66,6 +70,16 @@ export function createApp({ pool, publicOrigin = 'http://localhost:3000', secure
       'assets/ucf-logo.png','assets/fullsail-logo.png','assets/fullsail-logo-white.png']
   };
   for (const [type,names] of Object.entries(uiFiles)) for (const name of names) staticFiles.set('/'+name,[name,type]);
+  // Only publish the named fictional portraits, never arbitrary dataset paths.
+  for (const student of demoCatalog.students) {
+    if (!/^assets\/student-photos\/STU-\d{4}-[a-z]+(?:-[a-z]+)*\.png$/.test(student.photo)) throw new Error('Invalid demo portrait path');
+    staticFiles.set('/'+student.photo,[student.photo,'image/png']);
+  }
+  for (const [name,type] of [
+    ['assets/student-photos/preview.png','image/png'],
+    ['assets/student-photos/mapping.json','application/json; charset=utf-8'],
+    ['assets/student-photos/mapping.csv','text/csv; charset=utf-8']
+  ]) staticFiles.set('/'+name,[name,type]);
   for (const name of ['ucf-logo.png','fullsail-logo.png','fullsail-logo-white.png'])
     staticFiles.set('/teacherPortal/assets/'+name,['assets/'+name,'image/png']);
   async function authenticate(req) {
@@ -106,14 +120,18 @@ export function createApp({ pool, publicOrigin = 'http://localhost:3000', secure
   async function route(req,res) {
     const url = new URL(req.url,origin); const path = url.pathname; const method = req.method;
     if (!path.startsWith('/api/')) {
+      if (['GET','HEAD'].includes(method) && ['/teacherPortal/index.html','/Frontend/Teacherpage/index.html'].includes(path)) {
+        res.writeHead(303,{'Location':'/index.html','Cache-Control':'no-cache'}); res.end(); return;
+      }
       if (!['GET','HEAD'].includes(method) || !staticFiles.has(path)) fail(404,'not_found','Page not found');
       const [name,type] = staticFiles.get(path);
       const bytes = await readFile(new URL(name,frontendRoot));
       res.writeHead(200,{'Content-Type':type,'Cache-Control':'no-cache'}); res.end(method === 'HEAD' ? undefined : bytes); return;
     }
     if (url.search) fail(400,'unsupported_query','Query parameters are unsupported');
-    if (!['GET','POST'].includes(method)) fail(405,'method_not_allowed','Method not allowed');
-    if (method === 'POST' && req.headers.origin !== origin) fail(403,'invalid_origin','Request must come from this application');
+    const recordingChunkRoute=path.match(/^\/api\/recordings\/([^/]+)\/chunks\/(\d+)$/);
+    if (!['GET','POST'].includes(method) && !(method==='PUT'&&recordingChunkRoute)) fail(405,'method_not_allowed','Method not allowed');
+    if (['POST','PUT'].includes(method) && req.headers.origin !== origin) fail(403,'invalid_origin','Request must come from this application');
     const body = method === 'POST' ? await readBody(req, /^\/api\/groups\/[^/]+\/faces\/(detect|enroll)$/.test(path) ? 400000 : 8192) : null;
     if (path === '/api/login' && method === 'POST') {
       fields(body,['email','password'],['email','password']);
@@ -139,12 +157,74 @@ export function createApp({ pool, publicOrigin = 'http://localhost:3000', secure
       return {user:userView(user),csrfToken,capabilities:{syntheticCamera}};
     }
     const user = await authenticate(req);
-    if (method === 'POST') {
+    if (['POST','PUT'].includes(method)) {
       const supplied = req.headers['x-csrf-token'];
       if (typeof supplied !== 'string' || !/^[a-f0-9]{64}$/.test(supplied) || !timingSafeEqual(Buffer.from(supplied),Buffer.from(user.csrf_token)))
         fail(403,'invalid_csrf','Refresh the page and try again');
     }
     if (path === '/api/me' && method === 'GET') return {user:userView(user),csrfToken:user.csrf_token,capabilities:{syntheticCamera}};
+    const recordingGroupRoute=path.match(/^\/api\/groups\/([^/]+)\/recordings$/);
+    const recordingRoute=path.match(/^\/api\/recordings\/([^/]+)\/(finish|video)$/);
+    if(recordingGroupRoute||recordingChunkRoute||recordingRoute){
+      const storeCall=async operation=>{
+        try{return await operation();}catch(error){
+          if(Number.isInteger(error.status))throw new HttpError(error.status,error.code||'recording_error',error.message);
+          throw error;
+        }
+      };
+      const authorizeGroup=groupId=>transaction(pool,db=>db.query('SELECT attendance.require_group_manager($1,$2)',[user.id,groupId]),{readOnly:true});
+      if(recordingGroupRoute){
+        const groupId=uuid(recordingGroupRoute[1]); await authorizeGroup(groupId);
+        if(method==='GET')return {recordings:await storeCall(()=>recordingStore.list(groupId))};
+        if(method==='POST'){
+          fields(body,['mimeType','startedAt'],['mimeType','startedAt']);
+          return {recording:await storeCall(()=>recordingStore.create({groupId,ownerId:user.id,mimeType:body.mimeType,startedAt:timestamp(body.startedAt)}))};
+        }
+        fail(405,'method_not_allowed','Method not allowed');
+      }
+      const id=uuid((recordingChunkRoute||recordingRoute)[1]);
+      const recording=await storeCall(()=>recordingStore.get(id));
+      await authorizeGroup(recording.groupId);
+      if(recordingChunkRoute&&method==='PUT'){
+        if(recording.ownerId!==user.id)fail(403,'forbidden','Only the recording owner can upload video');
+        if((req.headers['content-type']||'').split(';')[0]!==recording.mimeType.split(';')[0])fail(415,'invalid_recording_type','Video content type must match the recording');
+        const chunks=[];let bytes=0;
+        for await(const chunk of req){bytes+=chunk.length;if(bytes>8*1024*1024)fail(413,'recording_chunk_too_large','Video chunk exceeds 8 MiB');chunks.push(chunk);}
+        return {recording:await storeCall(()=>recordingStore.putChunk(id,Number(recordingChunkRoute[2]),Buffer.concat(chunks)))};
+      }
+      if(recordingRoute?.[2]==='finish'&&method==='POST'){
+        if(recording.ownerId!==user.id)fail(403,'forbidden','Only the recording owner can finish video');
+        fields(body,['endedAt'],['endedAt']);
+        return {recording:await storeCall(()=>recordingStore.finish(id,{endedAt:timestamp(body.endedAt)}))};
+      }
+      if(recordingRoute?.[2]==='video'&&method==='GET'){
+        const media=await storeCall(()=>recordingStore.media(id));
+        let start=0,end=media.size-1,status=200;
+        if(req.headers.range){
+          const match=/^bytes=(\d*)-(\d*)$/.exec(req.headers.range);
+          if(!match||(!match[1]&&!match[2])){res.setHeader('Content-Range',`bytes */${media.size}`);fail(416,'invalid_range','Invalid video byte range');}
+          if(!match[1])start=Math.max(0,media.size-Number(match[2]));
+          else {start=Number(match[1]);if(match[2])end=Math.min(end,Number(match[2]));}
+          if(!Number.isSafeInteger(start)||!Number.isSafeInteger(end)||start<0||start> end||start>=media.size){res.setHeader('Content-Range',`bytes */${media.size}`);fail(416,'invalid_range','Invalid video byte range');}
+          status=206;res.setHeader('Content-Range',`bytes ${start}-${end}/${media.size}`);
+        }
+        res.writeHead(status,{'Content-Type':media.mimeType,'Content-Length':end-start+1,'Accept-Ranges':'bytes','Cache-Control':'private, no-store'});
+        await pipeline(createReadStream(media.path,{start,end}),res);return;
+      }
+      fail(405,'method_not_allowed','Method not allowed');
+    }
+    const portraitRoute=path.match(/^\/api\/team-portraits\/(team_anthony|team_leo|team_rebbeca|team_olivia)$/);
+    if (portraitRoute && method === 'GET') {
+      const bytes=await transaction(pool,async db=>{
+        const reference=(await db.query(`SELECT r.group_id,r.image_bytes FROM attendance.team_face_references r
+          JOIN attendance.people p ON p.id=r.person_id JOIN attendance.groups g ON g.id=r.group_id
+          WHERE r.reference_key=$1 AND r.is_active AND p.is_active AND g.is_active`,[portraitRoute[1]])).rows[0];
+        if(!reference) fail(404,'not_found','Team portrait not found');
+        await db.query('SELECT attendance.require_group_manager($1,$2)',[user.id,reference.group_id]);
+        return Buffer.from(reference.image_bytes);
+      },{readOnly:true});
+      res.writeHead(200,{'Content-Type':'image/jpeg','Cache-Control':'no-store'}); res.end(bytes); return;
+    }
     if (path === '/api/student-profile' && method === 'GET') {
       if(user.role!=='student'||!user.person_id) fail(403,'forbidden','Student access required');
       return studentProfile(user.person_id,user);
@@ -188,6 +268,30 @@ export function createApp({ pool, publicOrigin = 'http://localhost:3000', secure
           summary:(await db.query('SELECT * FROM attendance.student_absence_summary WHERE person_id=$1 ORDER BY group_code',[user.person_id])).rows};
       });
     }
+    const firstCheckIn = path.match(/^\/api\/groups\/([^/]+)\/checkins$/);
+    if (firstCheckIn && method === 'POST') {
+      const groupId=uuid(firstCheckIn[1]);
+      fields(body,['personId'],['personId']); const personId=uuid(body.personId);
+      return transaction(pool,async db=>{
+        await db.query('SELECT attendance.require_group_manager($1,$2)',[user.id,groupId]);
+        const group=(await db.query('SELECT * FROM attendance.groups WHERE id=$1 FOR UPDATE',[groupId])).rows[0];
+        if(!group.is_active)fail(409,'inactive_group','Group is inactive');
+        // The group lock makes concurrent first faces and retries share a
+        // session; preparation and attendance have one durable commit.
+        let session=(await db.query(`SELECT * FROM attendance.attendance_sessions WHERE group_id=$1
+          AND status='open' AND starts_at<=clock_timestamp() AND ends_at>clock_timestamp()
+          ORDER BY starts_at DESC LIMIT 1`,[groupId])).rows[0];
+        if(!session){
+          session=(await db.query(`WITH new_window AS (SELECT clock_timestamp() AS starts_at)
+            INSERT INTO attendance.attendance_sessions(group_id,starts_at,ends_at,late_after_minutes,created_by)
+            SELECT $1,starts_at,starts_at+interval '1 hour',15,$2 FROM new_window RETURNING *`,[groupId,user.id])).rows[0];
+          await db.query('SELECT attendance.open_session($1,$2)',[session.id,user.id]);
+        }
+        const record=(await db.query('SELECT * FROM attendance.record_check_in($1,$2,$3)',[session.id,personId,user.id])).rows[0];
+        return {session:(await db.query(sessionQuery,[session.id])).rows[0],record,
+          roster:(await db.query(rosterQuery,[session.id])).rows};
+      });
+    }
     const faceRoute = path.match(/^\/api\/groups\/([^/]+)\/faces\/(detect|enroll|clear)$/);
     if (faceRoute && method === 'POST') {
       const groupId = uuid(faceRoute[1]), action = faceRoute[2];
@@ -198,9 +302,15 @@ export function createApp({ pool, publicOrigin = 'http://localhost:3000', secure
         await db.query('SELECT attendance.require_group_manager($1,$2)',[user.id,groupId]);
         const allowedIds = (await db.query(`SELECT p.id FROM attendance.group_memberships m JOIN attendance.people p ON p.id=m.person_id
           WHERE m.group_id=$1 AND m.joined_at<=now() AND (m.left_at IS NULL OR m.left_at>now()) AND p.is_active`,[groupId])).rows.map(row => row.id);
-        const references = action === 'detect' ? (await db.query('SELECT reference_key,person_id FROM attendance.team_face_references WHERE group_id=$1 AND is_active',[groupId])).rows : [];
+        // A person can attend several courses; reuse their saved reference only
+        // when this manager is also authorized for its source group.
+        const references = action === 'detect' ? (await db.query(`SELECT r.reference_key,r.person_id
+          FROM attendance.team_face_references r JOIN attendance.groups g ON g.id=r.group_id
+          WHERE r.is_active AND g.is_active AND r.person_id=ANY($1::uuid[])
+            AND ($2='admin' OR EXISTS(SELECT 1 FROM attendance.group_staff gs WHERE gs.group_id=r.group_id AND gs.user_id=$3))
+          ORDER BY r.reference_key`,[allowedIds,user.role,user.id])).rows : [];
         return {allowedIds, referenceMappings:references.filter(row => allowedIds.includes(row.person_id)).map(row => ({referenceKey:row.reference_key,personId:row.person_id}))};
-      });
+      }, {readOnly:true});
       if (action === 'enroll' && !allowedIds.includes(body.personId)) fail(403,'not_in_roster','Choose an active student from this course roster');
       try { return await faceWorker.request({ action, groupId, allowedIds, referenceMappings, ...body }); }
       catch (error) { throw new HttpError(error.status || 503, error.code || 'face_service_unavailable', error.message || 'Face service unavailable'); }
@@ -309,6 +419,7 @@ export function createApp({ pool, publicOrigin = 'http://localhost:3000', secure
       const result = await route(req,res);
       if (!res.writableEnded) { res.writeHead(200,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}); res.end(JSON.stringify(result)); }
     } catch (error) {
+      if(res.headersSent){res.destroy();return;}
       let status = error.status; let code = error.code; let message = error.message;
       if (!(error instanceof HttpError)) {
         if (error.code === '42501') { status=403; code='forbidden'; message='You are not authorized for this group'; }
@@ -319,6 +430,12 @@ export function createApp({ pool, publicOrigin = 'http://localhost:3000', secure
       res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}); res.end(JSON.stringify({error:{code,message}}));
     }
   });
-  server.on('close', () => faceWorker.close());
+  let recordingCleanup;
+  const cleanRecordings=()=>recordingStore.cleanup().catch(()=>console.error('Recording retention cleanup failed; it will retry.'));
+  server.on('listening', () => {
+    faceWorker.start?.(); cleanRecordings();
+    recordingCleanup=setInterval(cleanRecordings,5*60*1000);recordingCleanup.unref();
+  });
+  server.on('close', () => {clearInterval(recordingCleanup);faceWorker.close();});
   return server;
 }
