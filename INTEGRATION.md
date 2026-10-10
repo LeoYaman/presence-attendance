@@ -10,7 +10,9 @@ Approve attendance posts to `/api/sessions/:id/close`. The server marks students
 
 Dashboard refreshes every five seconds while a teacher has a visible selected session. This bounded prototype polling avoids a separate streaming service. Context and dashboard generations discard old responses after section/session switches, sign-out or acknowledged mutations. Failed refreshes show a stale-data message. Counts, five-minute arrival buckets and finalized daily trends come from server queries. Session and bucket times display in the course's IANA time zone. Session creation inputs explicitly use the browser's time zone and are sent as UTC ISO timestamps.
 
-Students receive only `/api/history`, with their saved session history and term absence allowances. API authorization determines what each account can access.
+Students can read `/api/history` for their own saved session history and term absence allowances. API authorization determines what each account can access.
+
+The root `student.html` loads `/api/student-profile` for authenticated students: identity, course sections, saved history and server-calculated absence allowance. `/api/preferences` saves that student's notification preference; email delivery is not configured. Teachers and admins use the clearly labeled, read-only `/api/student-preview` picker. Teacher previews include only their assigned course sections, even when the selected student belongs to other courses. Preview cannot change a student's notification preferences. No sample attendance is embedded in the connected student page.
 
 ## Recognition adapter boundary
 

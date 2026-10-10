@@ -11,6 +11,7 @@ GRANT SELECT,INSERT,DELETE ON attendance.auth_sessions TO presence_runtime;
 GRANT INSERT ON attendance.attendance_sessions,attendance.attendance_records,
   attendance.attendance_events,attendance.audit_logs TO presence_runtime;
 GRANT UPDATE ON attendance.attendance_sessions,attendance.attendance_records TO presence_runtime;
+GRANT UPDATE(email_notifications) ON attendance.users TO presence_runtime;
 -- PostgreSQL row-locking SELECT FOR UPDATE / FOR SHARE requires UPDATE on at
 -- least one column. Only the maintenance timestamp is editable here.
 GRANT UPDATE(updated_at) ON attendance.groups,attendance.face_enrollments TO presence_runtime;

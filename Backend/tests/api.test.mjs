@@ -77,6 +77,40 @@ test('CSRF, origin, identity injection and group authorization are enforced',asy
   assert.equal((await request('/api/history',{actor:teacher})).status,403);
   assert.equal((await request(`/api/sessions/not-a-uuid/open`,{actor:teacher,body:{}})).status,400);
 });
+test('student profile uses own identity; preview is limited to managed courses and preferences cannot impersonate',async () => {
+  assert.equal((await request('/api/student-profile')).status,401);
+  assert.equal((await request('/api/student-profile',{actor:teacher})).status,403);
+  const own=await request('/api/student-profile',{actor:student});
+  assert.equal(own.status,200); assert.equal(own.body.profile.id,id.alice);
+  assert.equal(own.body.profile.full_name,'Alice Test');
+  assert.equal(own.body.groups.length,1);
+  const list=await request('/api/student-preview',{actor:teacher});
+  assert.deepEqual(list.body.students.map(p=>p.id).sort(),[id.alice,id.bob].sort());
+  assert.equal((await request('/api/student-preview',{actor:student})).status,403);
+  assert.equal((await request(`/api/student-preview/${id.bob}`,{actor:student})).status,403);
+  assert.equal((await request(`/api/student-preview/${id.alice}`,{actor:otherTeacher})).status,403);
+  const hiddenGroup=randomUUID();
+  await query(`INSERT INTO attendance.groups(id,code,name,course_code,term_name,term_starts_on,term_ends_on)
+    VALUES($1,'PRIVATE-STUDENT-TEST','Private class','PRIVATE','Test',current_date-1,current_date+1)`,[hiddenGroup]);
+  await query('INSERT INTO attendance.group_memberships(group_id,person_id) VALUES($1,$2)',[hiddenGroup,id.alice]);
+  try {
+    const preview=await request(`/api/student-preview/${id.alice}`,{actor:teacher});
+    assert.equal(preview.status,200);
+    assert.deepEqual(preview.body.groups.map(g=>g.id),[id.group]);
+    assert.deepEqual(preview.body.summary.map(g=>g.group_id),[id.group]);
+    assert.equal((await request('/api/student-profile',{actor:student})).body.groups.length,2);
+  } finally {
+    await query('DELETE FROM attendance.group_memberships WHERE group_id=$1',[hiddenGroup]);
+    await query('DELETE FROM attendance.groups WHERE id=$1',[hiddenGroup]);
+  }
+  assert.equal((await request('/api/preferences',{actor:teacher,body:{notify_absence:true}})).status,403);
+  assert.equal((await request('/api/preferences',{actor:student,body:{notify_absence:true,personId:id.bob}})).status,400);
+  assert.equal((await request('/api/preferences',{actor:student,body:{notify_absence:true},headers:{'X-CSRF-Token':''}})).status,403);
+  assert.equal((await request('/api/preferences',{actor:student,body:{notify_absence:true}})).status,200);
+  assert.equal((await request('/api/student-profile',{actor:student})).body.profile.notify_absence,true);
+  assert.equal((await one('SELECT email_notifications FROM attendance.users WHERE id=$1',[id.teacher])).email_notifications,false);
+});
+
 test('face routes require authentication, CSRF, teacher role and group management permission',async () => {
   faceCalls=[];
   const path=`/api/groups/${id.group}/faces/detect`, body={image:'eA=='};
@@ -153,6 +187,11 @@ test('opening roster, teacher check-in and retry deduplicate raw event history',
   const dashboard=await request(`/api/sessions/${id.session}/dashboard`,{actor:teacher});
   assert.deepEqual(dashboard.body.distribution,{pending:1,present:1,late:0,absent:0,total:2}); assert.equal(dashboard.body.arrivals.reduce((n,r)=>n+r.count,0),1);
   assert.equal(dashboard.body.roster.find(r=>r.person_id===id.alice).source,'teacher');
+  const studentView=(await request('/api/student-profile',{actor:student})).body;
+  assert.equal(studentView.history.find(r=>r.session_id===id.session).status,'present');
+  assert.equal(studentView.history.find(r=>r.session_id===id.session).checked_in_at,aliceRecord.checked_in_at);
+  const preview=(await request(`/api/student-preview/${id.alice}`,{actor:teacher})).body;
+  assert.deepEqual(preview.history,studentView.history);
   assert.equal((await request(`/api/sessions/${id.session}/checkins`,{actor:teacher,body:{personId:id.bob,source:'camera',confidence:0.999}})).status,501);
   assert.equal((await request(`/api/sessions/${id.session}/checkins`,{actor:teacher,body:{personId:id.bob,source:'teacher',confidence:0.999}})).status,400);
 });
@@ -319,6 +358,12 @@ test('approve-next rolls back old finalization, new roster and events if success
 });
 
 test('static allowlist blocks credentials/datasets; logout, inactive accounts and expiry revoke access',async () => {
+  for (const path of ['/login.html','/student.html','/AdminPage/overview.html','/teacherPortal/index.html','/Frontend/Studentpage/index.html',
+    '/student.css?v=preview','/AdminPage/admin.css?v=preview','/student.js','/assets/ucf-logo.png']) {
+    const response=await fetch(`${origin}${path}`);
+    assert.equal(response.status,200,path);
+    assert.ok(response.headers.get('content-type'),path);
+  }
   for (const path of ['/Backend/.env','/face_data/README.txt','/.git/config']) assert.equal((await fetch(`${origin}${path}`)).status,404);
   await query('UPDATE attendance.users SET is_active=false WHERE id=$1',[id.otherTeacher]); assert.equal((await request('/api/me',{actor:otherTeacher})).status,401);
   await query("UPDATE attendance.auth_sessions SET expires_at=now()-interval '59 minutes',created_at=now()-interval '1 hour' WHERE user_id=$1",[id.student]);

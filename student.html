@@ -10,20 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Arvo:wght@400;700&family=Montserrat:wght@400;500;600;700&family=Oswald:wght@500;600&family=Roboto+Mono:wght@400;500&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="student.css?v=student-profile-1">
-  <!-- Apply university, appearance and the student's saved design before first paint -->
-  <script>
-    try {
-      var d = document.documentElement;
-      var u = localStorage.getItem('presence-university'), t = localStorage.getItem('presence-theme');
-      if (u) d.dataset.university = u;
-      if (!t && matchMedia('(prefers-color-scheme: dark)').matches) t = 'dark';
-      if (t) d.dataset.theme = t;
-      var s = JSON.parse(localStorage.getItem('presence.student.savedDesign') || 'null');
-      if (s && (s.version === 2 || s.version === 3) && ['ocean', 'lavender', 'sage', 'rose', 'peach', 'sunshine', 'ruby', 'tangerine', 'gold', 'emerald', 'cobalt', 'violet'].includes(s.skin)) d.dataset.skin = s.skin;
-      if (s && s.version === 3 && ['rounded', 'soft', 'square'].includes(s.bubbles)) d.dataset.bubbles = s.bubbles;
-    } catch (e) {}
-  </script>
-  <script src="student.js?v=summary-simple-1" defer></script>
+  <script src="student.js?v=database-1" defer></script>
   <script src="customize.js?v=close-on-save" defer></script>
 </head>
 <body>
@@ -71,15 +58,15 @@
             <label class="toggle">
               <span class="toggle__text">
                 <span class="toggle__label">Notify Me</span>
-                <span class="toggle__help" id="email-help">Send me emails about my attendance in class.</span>
+                <span class="toggle__help" id="email-help">Attendance email preference. Email delivery is not configured yet.</span>
               </span>
-              <input type="checkbox" id="email-notifications" class="switch-input" role="switch" aria-describedby="email-help">
+              <input type="checkbox" id="email-notifications" class="switch-input" role="switch" aria-describedby="email-help" disabled>
             </label>
           </div>
         </div>
-        <div class="student-profile" aria-label="Sample student profile">
-          <span class="student-profile__avatar" aria-hidden="true">AM</span>
-          <div class="student-profile__details"><strong>Alex Morgan</strong><span>Student · ID 001</span></div>
+        <div class="student-profile" id="student-profile" aria-label="Student profile">
+          <span class="student-profile__avatar" id="profile-avatar" aria-hidden="true">—</span>
+          <div class="student-profile__details"><strong id="profile-name">Connecting…</strong><span id="profile-id">Student attendance</span></div>
         </div>
       </div>
     </div>
@@ -90,16 +77,19 @@
     <section class="summary-band" aria-labelledby="headline">
       <div class="summary summary--student">
         <div class="summary__side">
-          <p class="kicker">Alex Morgan · Student ID <span class="mono">001</span></p>
+          <p class="kicker" id="student-kicker">Connecting to your attendance records…</p>
+          <div class="course-picker" id="preview-picker" hidden>
+            <label for="preview-select">Read-only student preview</label>
+            <select id="preview-select" class="field field--band" disabled></select>
+            <p class="help">Viewing students from your managed classes. Your account remains signed in.</p>
+          </div>
           <div class="course-picker" hidden>
             <label for="course-select">Class</label>
-            <select id="course-select" class="field field--band" aria-describedby="course-feedback">
-              <option value="cs101">CS 101 · Introduction to Computer Science</option>
-              <option value="math201">MATH 201 · Calculus II</option>
-              <option value="eng102">ENG 102 · Academic Writing</option>
-            </select>
+            <select id="course-select" class="field field--band" aria-describedby="course-feedback" disabled></select>
             <p id="course-feedback" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
           </div>
+          <p class="help" id="attendance-state" role="status" aria-live="polite">Loading saved attendance…</p>
+          <div><button type="button" class="button button--secondary" id="refresh-attendance">Refresh</button> <a href="login.html" id="student-signin" hidden>Sign in</a></div>
         </div>
 
         <div class="summary__text attendance-warning">
@@ -107,7 +97,7 @@
           <div class="attendance-warning__body">
             <svg class="attendance-warning__icon" viewBox="0 0 32 32" width="36" height="36" aria-hidden="true"><path d="M16 3 30 28H2Z" fill="#f5ca58" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M16 11v8" stroke="#302510" stroke-width="3"/><circle cx="16" cy="23" r="1.6" fill="#302510"/></svg>
             <div class="attendance-warning__message">
-          <h1 class="headline" id="headline"><span id="remaining-count">7</span> <span id="remaining-word">absences</span> left in <span id="headline-course">Introduction to Computer Science</span>.</h1>
+          <h1 class="headline" id="headline"><span id="attendance-placeholder">Loading attendance…</span><span id="attendance-summary" hidden><span id="remaining-count">—</span> <span id="remaining-word">absences</span> left in <span id="headline-course">your class</span>.</span></h1>
             </div>
           </div>
         </div>
@@ -120,51 +110,44 @@
       <section class="history" id="history" aria-labelledby="history-title">
         <div class="section-head">
           <h2 id="history-title" class="section-title">Attendance History</h2>
-          <p class="section-meta" id="session-count">8 sessions</p>
+          <p class="section-meta" id="session-count">— sessions</p>
         </div>
-        <noscript><p class="help">Turn on JavaScript to switch classes. Showing CS 101 sample attendance.</p></noscript>
+        <noscript><p class="help">Turn on JavaScript to load your saved attendance.</p></noscript>
 
         <div class="table-wrap" tabindex="0" role="region" aria-label="Attendance history" aria-describedby="status-help">
           <table class="history-table">
-            <caption class="sr-only" id="history-caption">Alex Morgan's attendance history for Introduction to Computer Science, CS 101</caption>
+            <caption class="sr-only" id="history-caption">Student attendance history</caption>
             <thead>
               <tr><th scope="col">Date</th><th scope="col">Class time</th><th scope="col">Status</th><th scope="col">Checked in</th></tr>
             </thead>
             <tbody>
-              <tr><th scope="row"><time datetime="2026-10-09">Oct 9, 2026</time></th><td>9:00–10:30 AM</td><td><span class="st st--pending">Pending</span></td><td>—</td></tr>
-              <tr><th scope="row"><time datetime="2026-10-07">Oct 7, 2026</time></th><td>9:00–10:30 AM</td><td><span class="st st--present">Present</span></td><td><time datetime="2026-10-07T08:57">8:57 AM</time></td></tr>
-              <tr><th scope="row"><time datetime="2026-10-05">Oct 5, 2026</time></th><td>9:00–10:30 AM</td><td><span class="st st--absent">Absent</span></td><td>—</td></tr>
-              <tr><th scope="row"><time datetime="2026-10-02">Oct 2, 2026</time></th><td>9:00–10:30 AM</td><td><span class="st st--late">Late</span></td><td><time datetime="2026-10-02T09:12">9:12 AM</time></td></tr>
-              <tr><th scope="row"><time datetime="2026-09-30">Sep 30, 2026</time></th><td>9:00–10:30 AM</td><td><span class="st st--absent">Absent</span></td><td>—</td></tr>
-              <tr><th scope="row"><time datetime="2026-09-28">Sep 28, 2026</time></th><td>9:00–10:30 AM</td><td><span class="st st--present">Present</span></td><td><time datetime="2026-09-28T08:59">8:59 AM</time></td></tr>
-              <tr><th scope="row"><time datetime="2026-09-25">Sep 25, 2026</time></th><td>9:00–10:30 AM</td><td><span class="st st--absent">Absent</span></td><td>—</td></tr>
-              <tr><th scope="row"><time datetime="2026-09-23">Sep 23, 2026</time></th><td>9:00–10:30 AM</td><td><span class="st st--present">Present</span></td><td><time datetime="2026-09-23T08:55">8:55 AM</time></td></tr>
+              <tr><td colspan="4">Loading saved attendance…</td></tr>
             </tbody>
           </table>
         </div>
-        <p id="status-help" class="help">Pending means your teacher hasn’t approved that day’s attendance yet.</p>
+        <p id="status-help" class="help">Present and Late are saved check-ins. Pending means no check-in has been recorded yet; when the teacher finalizes attendance, remaining Pending records become Absent.</p>
       </section>
 
       <aside class="side-panels" aria-label="Course details and settings">
         <!-- Absence allowance -->
         <section class="panel" aria-labelledby="allowance-title">
           <h2 id="allowance-title" class="panel__title">Absence Allowance</h2>
-          <p class="panel__lead" id="allowance-lead"><strong>7 left</strong> of 10 allowed.</p>
-          <div class="allowance" id="allowance-bar" role="img" aria-label="Absence allowance: 3 used, 7 remaining, 10 allowed"></div>
+          <p class="panel__lead" id="allowance-lead">Loading allowance…</p>
+          <div class="allowance" id="allowance-bar" role="img" aria-label="Absence allowance unavailable"></div>
           <div class="legend" aria-hidden="true"><span><i class="legend__used"></i>Used</span><span><i class="legend__left"></i>Left</span></div>
-          <p class="help" id="allowance-help">Sample policy for CS 101: 10 absences allowed. Late and Pending don’t count as absences in this example.</p>
+          <p class="help" id="allowance-help">Your class policy will appear here.</p>
         </section>
 
         <!-- Course -->
         <section class="panel" aria-labelledby="course-panel-title">
           <h2 id="course-panel-title" class="panel__title">Course</h2>
           <dl class="facts-list">
-            <div><dt>Class</dt><dd id="fact-code">CS 101</dd></div>
-            <div><dt>Ends</dt><dd id="fact-end"><time datetime="2026-12-11">Dec 11, 2026</time></dd></div>
-            <div><dt>Weeks left</dt><dd id="fact-weeks">9</dd></div>
-            <div><dt>Lessons so far</dt><dd id="fact-sessions">8</dd></div>
+            <div><dt>Class</dt><dd id="fact-code">—</dd></div>
+            <div><dt>Ends</dt><dd id="fact-end">—</dd></div>
+            <div><dt>Weeks left</dt><dd id="fact-weeks">—</dd></div>
+            <div><dt>Lessons so far</dt><dd id="fact-sessions">—</dd></div>
           </dl>
-          <p class="help">Sample schedule. Weeks left are counted from <time datetime="2026-10-09">Oct 9, 2026</time>.</p>
+          <p class="help" id="course-help">Schedule and history come from saved class records.</p>
         </section>
 
       </aside>
@@ -173,7 +156,7 @@
 
   <footer class="footer">
     <div class="footer__inner">
-      <p>Presence is a prototype for the Full Sail University “Pathways &amp; Perception” challenge. Student names and attendance are sample data.</p>
+      <p>Presence is a prototype for the Full Sail University “Pathways &amp; Perception” challenge. Attendance is loaded from the connected database.</p>
     </div>
   </footer>
 

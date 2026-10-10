@@ -23,3 +23,200 @@ fieldset{border:0;margin:0;min-width:0}.form-section{padding:20px 24px 24px;bord
 @media(forced-colors:active){.switch{appearance:auto;width:auto;height:auto}.switch::before{display:none}.nav-list a[aria-current]{border:2px solid Highlight}.badge{border:1px solid CanvasText}}
 
 .panel { box-shadow: 0 4px 12px rgba(0, 0, 0, .1); }
+
+/* Shared Presence university tokens */
+/* ==========================================================================
+   Presence · Attendance
+   Layout: apple.com structure (global nav, sticky local nav, one clear
+   statement, quiet tiles). Identity: each university's own brand system.
+
+   UCF  — UCF Brand web guide: Black + Bold Gold (#EDB80D), Oswald headlines,
+          Montserrat body, Roboto Mono for data, square corners, dark nav,
+          Horizon Blue links on black, no gold text on white, no all caps.
+   Full Sail — Orange (#EF4723) and charcoal (#201E1E), accented by white. Slab-serif
+          headlines (Arvo, closest free match to ITC Lubalin Graph), Roboto body.
+
+   Theme = data-university (ucf | fullsail) × data-theme (light | dark)
+   ========================================================================== */
+
+/* ---------- Shared status colors ---------- */
+:root {
+  --present: #0b7a32; --late: #a35400; --absent: #c62828; --pending: #5f6368;
+}
+[data-theme="dark"] {
+  --present: #6fd08c; --late: #f5b544; --absent: #ff7a7a; --pending: #a0a4aa;
+}
+
+/* ==========================================================================
+   UCF
+   ========================================================================== */
+[data-university="ucf"] {
+  --font-head: "Oswald", "Arial Narrow", sans-serif;
+  --font-body: "Montserrat", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Roboto Mono", ui-monospace, Menlo, monospace;
+  --head-weight: 500;
+  --head-track: .005em;
+  --body-size: 15px;
+  --body-track: 0;
+
+  --radius: 0;
+  --radius-btn: 0;
+  --dot-radius: 0;
+  --check-radius: 0;
+
+  --page: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f4f4f4;
+  --label: #000000;
+  --secondary: #4d4d4d;
+  --tertiary: #6b6b6b;
+  --hairline: #d6d6d6;
+  --track: #2e2e2e;
+
+  --nav-bg: #000000;
+  --nav-text: #ffffff;
+  --nav-muted: #b3b3b3;
+  --localnav-bg: rgba(255, 255, 255, .92);
+  --localnav-text: #000000;
+
+  --summary-bg: #000000;
+  --summary-text: #ffffff;
+  --summary-muted: #b3b3b3;
+  --summary-accent: #edb80d;      /* gold on black: approved, 11.46:1 */
+  --summary-rule: #edb80d;
+
+  --action: #edb80d;              /* Bold Gold is the action color */
+  --on-action: #000000;
+  --link: #000000;                /* on white: black, underlined */
+  --link-on-dark: #4a8fba;        /* Horizon Blue on black */
+  --focus: #000000;
+  --check-fill: #edb80d;
+  --check-mark: #000000;
+
+  --camera-bg: #000000;
+  --footer-bg: #000000;
+  --footer-text: #b3b3b3;
+}
+[data-university="ucf"][data-theme="dark"] {
+  color-scheme: dark;
+  --page: #000000;
+  --surface: #0f0f0f;
+  --surface-2: #161616;
+  --label: #ffffff;
+  --secondary: #b3b3b3;
+  --tertiary: #8c8c8c;
+  --hairline: #333333;
+  --localnav-bg: rgba(0, 0, 0, .9);
+  --localnav-text: #ffffff;
+  --link: #4a8fba;
+  --focus: #edb80d;
+  --camera-bg: #0a0a0a;
+  --footer-bg: #0a0a0a;
+}
+
+/* ==========================================================================
+   Full Sail — orange + charcoal, accented by white (colors taken from the logo)
+   Logo orange #EF4723 is used for large marks and graphics; buttons and links
+   use a deeper orange so white/dark text stays readable (WCAG AA).
+   ========================================================================== */
+[data-university="fullsail"] {
+  --font-head: "Arvo", "Rockwell", Georgia, serif;
+  --font-body: "Roboto", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Roboto Mono", ui-monospace, Menlo, monospace;
+  --head-weight: 700;
+  --head-track: -.01em;
+  --body-size: 16px;
+  --body-track: 0;
+
+  --radius: 12px;
+  --radius-btn: 6px;
+  --dot-radius: 50%;
+  --check-radius: 50%;
+
+  --page: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f2f2f2;
+  --label: #201e1e;           /* Full Sail charcoal */
+  --secondary: #5e5c5c;
+  --tertiary: #6b6969;
+  --hairline: #dddcdc;
+  --track: #e6e5e5;
+
+  --nav-bg: #ffffff;
+  --nav-text: #201e1e;
+  --nav-muted: #5e5c5c;
+  --localnav-bg: #201e1e;
+  --localnav-text: #ffffff;
+
+  --summary-bg: #ffffff;
+  --summary-text: #201e1e;
+  --summary-muted: #5e5c5c;
+  --summary-accent: #ef4723;  /* Full Sail orange, large text only */
+  --summary-rule: #ef4723;
+
+  --action: #d23a17;          /* orange, deepened: 4.8:1 with white */
+  --on-action: #ffffff;
+  --link: #c8350f;
+  --link-on-dark: #ff8a66;
+  --focus: #d23a17;
+  --check-fill: #ef4723;
+  --check-mark: #ffffff;
+
+  --camera-bg: #201e1e;
+  --footer-bg: #201e1e;
+  --footer-text: #bdbbbb;
+}
+[data-university="fullsail"][data-theme="dark"] {
+  color-scheme: dark;
+  --page: #201e1e;
+  --surface: #2a2828;
+  --surface-2: #333030;
+  --label: #f2f2f2;
+  --secondary: #a8a8a8;
+  --tertiary: #8f8d8d;
+  --hairline: #3f3c3c;
+  --track: #3f3c3c;
+  --nav-bg: #201e1e;
+  --nav-text: #f2f2f2;
+  --nav-muted: #a8a8a8;
+  --localnav-bg: #161414;
+  --summary-bg: #201e1e;
+  --summary-text: #f2f2f2;
+  --summary-muted: #a8a8a8;
+  --summary-accent: #ff7a55;
+  --summary-rule: #ef4723;
+  --link: #ff8a66;
+  --focus: #ff8a66;
+  --camera-bg: #161414;
+  --footer-bg: #161414;
+}
+
+
+/* Admin shell uses the same colors and typography as attendance pages. */
+[data-university] { --background:var(--page); --panel:var(--surface-2); --text:var(--label); --muted:var(--secondary); --border:var(--hairline); --green:var(--action); --green-soft:var(--surface-2); }
+body { font-family:var(--font-body); font-size:15px; background:var(--page); color:var(--label); -webkit-font-smoothing:antialiased; }
+h1,h2,h3,.brand { font-family:var(--font-head); font-weight:var(--head-weight); letter-spacing:var(--head-track); }
+h1 { font-size:clamp(30px,4vw,46px); } h2 { font-size:24px; } h3 { font-size:19px; }
+.sidebar { background:var(--nav-bg); color:var(--nav-text); border-right:0; border-top:4px solid var(--action); }
+.brand { font-size:28px; } .brand-mark { background:var(--action); color:var(--on-action); border-radius:var(--radius-btn); }
+.sidebar .brand-caption,.sidebar .nav-label,.sidebar-footer p { color:var(--nav-muted); }
+.nav-list a { color:var(--nav-text); border-radius:var(--radius-btn); }
+.nav-list a:hover { background:color-mix(in srgb,var(--action) 16%,var(--nav-bg)); }
+.nav-list a[aria-current] { background:var(--action); color:var(--on-action); box-shadow:none; }
+.page-header { background:var(--page); border-bottom:4px solid var(--action); flex-wrap:wrap; }
+.profile { margin-left:auto; } .avatar,.section-icon { background:var(--action); color:var(--on-action); border-color:var(--action); }
+.appearance-controls { display:flex; align-items:center; gap:10px; } .appearance-controls select { width:auto; min-width:100px; }
+.panel { background:var(--surface-2); border:1px solid var(--hairline); border-top:4px solid var(--action); border-radius:var(--radius); box-shadow:none; }
+.summary-card strong { font-family:var(--font-mono); font-size:36px; letter-spacing:-1px; }
+.summary-card p,.page-card>p,.panel-heading p,.support-column p { font-size:14px; }
+.summary-card>span,.help,.sidebar-footer p,.page-footer { font-size:12px; }
+.text-link { color:var(--link); text-decoration:underline; } :focus-visible { outline-color:var(--focus); }
+button,input[type="text"],input[type="url"],input[type="password"],select { background:var(--surface); color:var(--label); border-color:var(--hairline); border-radius:var(--radius-btn); font-size:13px; }
+button:hover { background:var(--surface-2); } .primary,.primary:hover { background:var(--action); color:var(--on-action); border-color:var(--action); }
+input::placeholder { color:var(--tertiary); } .key-row,.form-footer,.prototype-banner,.support-column .inset-note,.privacy-note { background:var(--surface); color:var(--secondary); border-radius:var(--radius); }
+.prototype-banner p { color:var(--secondary); } .switch:checked { background:var(--action); border-color:var(--action); }
+fieldset input,.checkbox-grid input { accent-color:var(--action); }
+table { font-size:13px; } th { background:var(--surface); color:var(--secondary); font-size:12px; } td { color:var(--label); }
+.badge { border-radius:var(--radius-btn); font-size:12px; } .success { background:color-mix(in srgb,var(--present) 12%,var(--surface)); color:var(--present); } .failed { background:color-mix(in srgb,var(--absent) 12%,var(--surface)); color:var(--absent); } .pending { background:color-mix(in srgb,var(--late) 12%,var(--surface)); color:var(--late); } .neutral { background:var(--surface); color:var(--secondary); }
+.skip-link { background:var(--action); color:var(--on-action); border-radius:var(--radius-btn); }
+@media(max-width:680px) { .profile { margin-left:0; } .appearance-controls { width:100%; } h1 { font-size:32px; } .sidebar { border-bottom:0; } }

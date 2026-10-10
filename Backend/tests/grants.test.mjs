@@ -24,6 +24,8 @@ test('runtime grant template supports workflow row locks without permitting grou
     await q("SELECT * FROM attendance.record_check_in($1,$2,$3,'face',0.99,$4)",[session,person,teacher,face]);
     await q('SELECT attendance.close_session($1,$2)',[session,teacher]);
     await q('COMMIT');
+    await q('UPDATE attendance.users SET email_notifications=true WHERE id=$1',[teacher]);
+    await assert.rejects(q("UPDATE attendance.users SET role='admin' WHERE id=$1",[teacher]),/permission denied/);
     await assert.rejects(q("UPDATE attendance.groups SET name='Changed' WHERE id=$1",[group]),/permission denied/);
     await assert.rejects(q("UPDATE attendance.face_enrollments SET status='failed' WHERE id=$1",[face]),/permission denied/);
     await assert.rejects(q('DELETE FROM attendance.attendance_records WHERE session_id=$1',[session]),/permission denied/);

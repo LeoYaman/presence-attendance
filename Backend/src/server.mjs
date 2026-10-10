@@ -55,6 +55,19 @@ export function createApp({ pool, publicOrigin = 'http://localhost:3000', secure
   const dummyHashPromise = hashPassword(opaqueToken());
   const staticFiles = new Map([['/', ['index.html','text/html; charset=utf-8']], ['/index.html',['index.html','text/html; charset=utf-8']],
     ['/app.js',['app.js','text/javascript; charset=utf-8']], ['/camera-client.js',['camera-client.js','text/javascript; charset=utf-8']], ['/styles.css',['styles.css','text/css; charset=utf-8']]]);
+  // Publish only the UI files; credentials, datasets and backend source stay private.
+  const uiFiles = {
+    'text/html; charset=utf-8': ['login.html','student.html','admin.html','overview.html','students.html','classes.html','attendance.html','audit-history.html','settings.html',
+      ...['admin','overview','students','classes','attendance','audit-history','settings'].map(name => `AdminPage/${name}.html`),
+      'Frontend/Studentpage/index.html','Frontend/Teacherpage/index.html','teacherPortal/index.html'],
+    'text/css; charset=utf-8': ['login.css','student.css','admin.css','AdminPage/admin.css','Frontend/Studentpage/styles.css','Frontend/Teacherpage/styles.css','teacherPortal/styles.css'],
+    'text/javascript; charset=utf-8': ['login.js','student.js','admin.js','admin-theme.js','customize.js','Frontend/Studentpage/student.js','Frontend/Studentpage/customize.js','teacherPortal/app.js'],
+    'image/png': ['ucf-logo.png','ucf-header-logo.png','fullsail-logo.png','fullsail-logo-white.png','fullsail-header-light.png','fullsail-header-dark.png',
+      'assets/ucf-logo.png','assets/fullsail-logo.png','assets/fullsail-logo-white.png']
+  };
+  for (const [type,names] of Object.entries(uiFiles)) for (const name of names) staticFiles.set('/'+name,[name,type]);
+  for (const name of ['ucf-logo.png','fullsail-logo.png','fullsail-logo-white.png'])
+    staticFiles.set('/teacherPortal/assets/'+name,['assets/'+name,'image/png']);
   async function authenticate(req) {
     const token = readSessionCookie(req.headers.cookie);
     if (!token) fail(401,'authentication_required','Please sign in');
@@ -71,15 +84,34 @@ export function createApp({ pool, publicOrigin = 'http://localhost:3000', secure
     await db.query('SELECT attendance.require_group_manager($1,$2)',[actor.id,result.group_id]);
     return result;
   }
+  async function studentProfile(personId, actor, preview = false) {
+    return transaction(pool, async db => {
+      await db.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');
+      const groups = (await db.query(`SELECT g.* FROM attendance.groups g WHERE
+        (EXISTS(SELECT 1 FROM attendance.group_memberships m WHERE m.group_id=g.id AND m.person_id=$1)
+          OR EXISTS(SELECT 1 FROM attendance.student_history h WHERE h.group_id=g.id AND h.person_id=$1))
+        AND ($2::boolean=false OR $3='admin' OR EXISTS(SELECT 1 FROM attendance.group_staff gs WHERE gs.group_id=g.id AND gs.user_id=$4))
+        ORDER BY g.name`,[personId,preview,actor.role,actor.id])).rows;
+      if (preview && !groups.length) fail(403,'forbidden','No managed course for this student');
+      const profile = (await db.query(`SELECT p.id,p.person_code,p.full_name,
+        coalesce(u.email_notifications,false) AS notify_absence FROM attendance.people p
+        LEFT JOIN attendance.users u ON u.person_id=p.id AND u.role='student' WHERE p.id=$1 AND p.is_active`,[personId])).rows[0];
+      if (!profile) fail(404,'not_found','Student not found');
+      const groupIds=groups.map(g=>g.id);
+      return {profile,groups,
+        history:(await db.query('SELECT * FROM attendance.student_history WHERE person_id=$1 AND group_id=ANY($2::uuid[]) ORDER BY starts_at DESC',[personId,groupIds])).rows,
+        summary:(await db.query('SELECT * FROM attendance.student_absence_summary WHERE person_id=$1 AND group_id=ANY($2::uuid[]) ORDER BY group_code',[personId,groupIds])).rows};
+    });
+  }
   async function route(req,res) {
     const url = new URL(req.url,origin); const path = url.pathname; const method = req.method;
-    if (url.search) fail(400,'unsupported_query','Query parameters are unsupported');
     if (!path.startsWith('/api/')) {
       if (!['GET','HEAD'].includes(method) || !staticFiles.has(path)) fail(404,'not_found','Page not found');
       const [name,type] = staticFiles.get(path);
       const bytes = await readFile(new URL(name,frontendRoot));
       res.writeHead(200,{'Content-Type':type,'Cache-Control':'no-cache'}); res.end(method === 'HEAD' ? undefined : bytes); return;
     }
+    if (url.search) fail(400,'unsupported_query','Query parameters are unsupported');
     if (!['GET','POST'].includes(method)) fail(405,'method_not_allowed','Method not allowed');
     if (method === 'POST' && req.headers.origin !== origin) fail(403,'invalid_origin','Request must come from this application');
     const body = method === 'POST' ? await readBody(req, /^\/api\/groups\/[^/]+\/faces\/(detect|enroll)$/.test(path) ? 400000 : 8192) : null;
@@ -113,6 +145,30 @@ export function createApp({ pool, publicOrigin = 'http://localhost:3000', secure
         fail(403,'invalid_csrf','Refresh the page and try again');
     }
     if (path === '/api/me' && method === 'GET') return {user:userView(user),csrfToken:user.csrf_token,capabilities:{syntheticCamera}};
+    if (path === '/api/student-profile' && method === 'GET') {
+      if(user.role!=='student'||!user.person_id) fail(403,'forbidden','Student access required');
+      return studentProfile(user.person_id,user);
+    }
+    if (path === '/api/preferences' && method === 'POST') {
+      if(user.role!=='student'||!user.person_id) fail(403,'forbidden','Student access required');
+      fields(body,['notify_absence'],['notify_absence']);
+      if(typeof body.notify_absence!=='boolean') fail(400,'invalid_body','Notification preference must be boolean');
+      await pool.query('UPDATE attendance.users SET email_notifications=$1 WHERE id=$2',[body.notify_absence,user.id]);
+      return {notify_absence:body.notify_absence};
+    }
+    if (path === '/api/student-preview' && method === 'GET') {
+      if(!['teacher','admin'].includes(user.role)) fail(403,'forbidden','Teacher access required');
+      const students=(await pool.query(`SELECT DISTINCT p.id,p.person_code,p.full_name FROM attendance.people p
+        JOIN (SELECT person_id,group_id FROM attendance.group_memberships UNION SELECT person_id,group_id FROM attendance.student_history) membership ON membership.person_id=p.id
+        WHERE p.is_active AND ($1='admin' OR EXISTS(SELECT 1 FROM attendance.group_staff gs WHERE gs.group_id=membership.group_id AND gs.user_id=$2))
+        ORDER BY p.full_name`,[user.role,user.id])).rows;
+      return {students};
+    }
+    const previewRoute=path.match(/^\/api\/student-preview\/([^/]+)$/);
+    if(previewRoute && method==='GET') {
+      if(!['teacher','admin'].includes(user.role)) fail(403,'forbidden','Teacher access required');
+      return studentProfile(uuid(previewRoute[1]),user,true);
+    }
     if (path === '/api/logout' && method === 'POST') {
       fields(body,[]); await pool.query('DELETE FROM attendance.auth_sessions WHERE token_hash=$1',[tokenDigest(readSessionCookie(req.headers.cookie))]);
       res.setHeader('Set-Cookie',sessionCookie('',secureCookies,null)); return {ok:true};
