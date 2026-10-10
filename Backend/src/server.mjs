@@ -61,11 +61,10 @@ export function createApp({ pool, publicOrigin = 'http://localhost:3000', secure
     ['/app.js',['app.js','text/javascript; charset=utf-8']], ['/camera-client.js',['camera-client.js','text/javascript; charset=utf-8']], ['/recording-client.js',['recording-client.js','text/javascript; charset=utf-8']], ['/styles.css',['styles.css','text/css; charset=utf-8']]]);
   // Publish only the UI files; credentials, datasets and backend source stay private.
   const uiFiles = {
-    'text/html; charset=utf-8': ['login.html','student.html','admin.html','overview.html','students.html','classes.html','attendance.html','audit-history.html','settings.html',
-      ...['admin','overview','students','classes','attendance','audit-history','settings'].map(name => `AdminPage/${name}.html`),
+    'text/html; charset=utf-8': ['login.html','student.html','parent-child.html','criminal-detection.html',
       'Frontend/Studentpage/index.html','Frontend/Teacherpage/index.html','teacherPortal/index.html'],
-    'text/css; charset=utf-8': ['login.css','student.css','admin.css','AdminPage/admin.css','Frontend/Studentpage/styles.css','Frontend/Teacherpage/styles.css','teacherPortal/styles.css'],
-    'text/javascript; charset=utf-8': ['login.js','student.js','admin.js','admin-theme.js','customize.js','Frontend/Studentpage/student.js','Frontend/Studentpage/customize.js','teacherPortal/app.js'],
+    'text/css; charset=utf-8': ['login.css','student.css','usecase-workspace.css','neutral-theme.css','Frontend/Studentpage/styles.css','Frontend/Teacherpage/styles.css','teacherPortal/styles.css'],
+    'text/javascript; charset=utf-8': ['login.js','student.js','usecase-workspace.js','customize.js','Frontend/Studentpage/student.js','Frontend/Studentpage/customize.js','teacherPortal/app.js'],
     'image/png': ['ucf-logo.png','ucf-header-logo.png','fullsail-logo.png','fullsail-logo-white.png','fullsail-header-light.png','fullsail-header-dark.png',
       'assets/ucf-logo.png','assets/fullsail-logo.png','assets/fullsail-logo-white.png']
   };

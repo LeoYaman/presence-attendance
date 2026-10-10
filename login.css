@@ -10,7 +10,6 @@
   padding: 36px;
   background: var(--surface);
   border: 1px solid var(--hairline);
-  border-top: 4px solid var(--action);
   border-radius: var(--radius);
   box-shadow: 0 8px 28px rgb(0 0 0 / 8%);
 }
@@ -145,15 +144,14 @@
 .usecase-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--hairline); }
 .usecase-card { padding: 32px 28px 36px; min-width: 0; background: var(--surface); }
 .usecase-card + .usecase-card { border-left: 1px solid var(--hairline); }
-.usecase-card--active { box-shadow: inset 0 4px var(--action); }
+
 .usecase-number { font-family: var(--font-mono); color: var(--tertiary); font-size: 13px; margin-bottom: 36px; }
 .usecase-badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 6px 9px; background: var(--action); color: var(--on-action); margin-bottom: 18px; }
 .usecase-badge--muted { background: var(--surface-2); color: var(--secondary); border: 1px solid var(--hairline); }
 .usecase-card h2, .login-card h2 { font-family: var(--font-head); font-weight: var(--head-weight); font-size: clamp(25px, 2.5vw, 32px); line-height: 1.2; margin: 0 0 14px; }
 .usecase-card > p { color: var(--secondary); font-size: 13px; line-height: 1.8; margin-bottom: 32px; }
 .usecase-actions { display: grid; gap: 12px; }
-.usecase-choice { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 18px 16px; background: var(--surface); color: var(--label); border: 1px solid var(--hairline); font: inherit; font-size: 14px; font-weight: 600; text-align: left; cursor: pointer; }
-.usecase-choice:first-child { background: var(--action); color: var(--on-action); border-color: var(--action); }
+.usecase-choice { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 18px 16px; background: #fff; color: #29292e; border: 1px solid #d9d9df; font: inherit; font-size: 14px; font-weight: 600; text-align: left; cursor: pointer; }
 .usecase-choice:hover { box-shadow: inset 0 0 0 1px currentColor; }
 .usecase-choice span { font-size: 20px; }
 .usecase-preview { padding: 24px 20px; background: var(--surface-2); border: 1px solid var(--hairline); min-height: 196px; }
@@ -171,3 +169,19 @@
   .usecase-card + .usecase-card { border-left: 0; border-top: 1px solid var(--hairline); }
   .usecase-number { margin-bottom: 20px; }
 }
+
+[data-university="ucf"] { --usecase-bg: #fff7d9; --usecase-hover: #ffefb3; }
+[data-university="fullsail"] { --usecase-bg: #ffede5; --usecase-hover: #ffdccb; }
+.usecase-card { background: var(--usecase-bg); transition: background-color .18s ease; }
+.usecase-card:hover { background: var(--usecase-hover); box-shadow: none; }
+.usecase-card .usecase-number, .usecase-card h2 { color: #29292e; }
+.usecase-card > p, .usecase-card .usecase-preview { color: #55555e; }
+
+.usecase-card { text-align: center; }
+.usecase-card:hover { box-shadow: inset 0 0 0 2px var(--action); }
+.usecase-choice { justify-content: center; text-align: center; position: relative; }
+.usecase-choice span { position: absolute; right: 16px; }
+
+.login-main { min-height:100dvh; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:40px 32px; }
+.login-main > .usecase-heading, .login-main > .usecase-grid { width:100%; }
+@media(max-width:760px) { .login-main { padding:32px 20px; } }

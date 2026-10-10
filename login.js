@@ -18,9 +18,17 @@ window.addEventListener('storage', applyAppearance);
 applyAppearance();
 
 const loginDialog = document.getElementById('login-dialog');
+let selectedLoginRole = 'Professor';
 document.querySelectorAll('[data-login-role]').forEach(button => {
   button.addEventListener('click', () => {
-    document.getElementById('login-title').textContent = `${button.dataset.loginRole} sign in`;
+    selectedLoginRole = button.dataset.loginRole;
+    document.getElementById('login-title').textContent = `${selectedLoginRole} Sign In`;
+    document.getElementById('login-form').reset();
+    document.querySelector('#login-form button[type="submit"]').disabled = false;
+    document.getElementById('password').type = 'password';
+    document.getElementById('show-password').textContent = 'Show';
+    document.getElementById('show-password').setAttribute('aria-pressed', 'false');
+    document.getElementById('show-password').setAttribute('aria-label', 'Show password');
     document.getElementById('login-status').hidden = true;
     loginDialog.showModal();
     document.getElementById('email').focus();
@@ -46,6 +54,10 @@ showPassword.addEventListener("click", () => {
 form.addEventListener("submit", async event => {
   event.preventDefault();
   status.hidden = false;
+  if (selectedLoginRole === 'Faculty' || selectedLoginRole === 'Security') {
+    status.textContent = `${selectedLoginRole} sign-in is not connected yet.`;
+    return;
+  }
   status.textContent = "Signing in…";
   submitButton.disabled = true;
 
@@ -64,8 +76,7 @@ form.addEventListener("submit", async event => {
 
     const destinations = {
       teacher: "/index.html",
-      student: "/student.html",
-      admin: "/AdminPage/overview.html"
+      student: "/student.html"
     };
     const destination = destinations[result?.user?.role];
     if (!destination) throw new Error("Your account does not have a supported workspace.");

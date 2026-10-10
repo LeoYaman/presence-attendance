@@ -1,0 +1,41 @@
+/* Shared classic palette for the use-case workspaces. */
+html[data-university][data-theme] {
+ --font-head: Georgia, "Times New Roman", serif;
+ --font-body: Georgia, "Times New Roman", serif;
+ --font-mono: Georgia, "Times New Roman", serif;
+ --head-weight: 600; --head-track: -.02em; --body-track: 0;
+ --radius: 10px; --radius-btn: 6px; --dot-radius: 50%; --check-radius: 6px;
+ --page: #f5f1e8; --surface: #fffdf7; --surface-2: #e8ecdf;
+ --label: #363c30; --secondary: #626553; --tertiary: #777666; --hairline: #cfcfbd;
+ --nav-bg: #e6e9dc; --nav-text: #363c30; --nav-muted: #686b59;
+ --localnav-bg: #eeeadd; --localnav-text: #363c30;
+ --summary-bg: #e5e9db; --summary-text: #363c30; --summary-muted: #626553;
+ --summary-accent: #76583f; --summary-rule: #a38b6c;
+ --action: #526947; --on-action: #fffdf7; --link: #526947; --focus: #76583f;
+ --check-fill: #526947; --check-mark: #fffdf7;
+ --camera-bg: #252b24; --footer-bg: #e6e9dc; --footer-text: #626553;
+ --usecase-bg: #e7ebdf; --usecase-hover: #d9e1cd;
+}
+html[data-university][data-theme="dark"] {
+ --page: #23271f; --surface: #2d3328; --surface-2: #394131;
+ --label: #f0ecdf; --secondary: #c2c5b2; --tertiary: #a7ac96; --hairline: #525b47;
+ --nav-bg: #292f24; --nav-text: #f0ecdf; --nav-muted: #c2c5b2;
+ --localnav-bg: #303529; --localnav-text: #f0ecdf;
+ --summary-bg: #30382a; --summary-text: #f0ecdf; --summary-muted: #c2c5b2;
+ --summary-accent: #d1b493; --summary-rule: #937b60;
+ --action: #b6c69c; --on-action: #23271f; --link: #c6d3b4; --focus: #d1b493;
+ --check-fill: #b6c69c; --check-mark: #23271f;
+ --footer-bg: #292f24; --footer-text: #c2c5b2;
+ --usecase-bg: #343d2e; --usecase-hover: #414e38;
+}
+.usecase-card .usecase-number, .usecase-card h2 { color: var(--label); }
+.usecase-card > p { color: var(--secondary); }
+.usecase-choice { background: var(--surface); color: var(--label); border-color: var(--hairline); border-radius: 6px; }
+.usecase-grid { border-radius: 12px; overflow: hidden; box-shadow: 0 6px 20px #332e2012; }
+.usecase-card:hover { box-shadow: inset 0 0 0 2px var(--summary-rule); }
+html[data-university] .camera, html[data-university] .roster { border-top-color: var(--summary-rule); }
+html[data-university] .uni-switch button[aria-checked="true"] { background: var(--action); color: var(--on-action); }
+.parent-child-page .elementary-school-name { font-family: var(--font-head); }
+.globalnav, .localnav { border-bottom: 1px solid var(--hairline); }
+
+html[data-university] .parent-child-page .camera, html[data-university] .parent-child-page .roster { border-top: 0; }

@@ -1,0 +1,44 @@
+.usecase-roster { position:static; height:auto; min-height:400px; box-shadow:0 4px 12px #0000001a; }
+.workspace-camera-actions { display:flex; gap:10px; flex-wrap:wrap; }
+.workspace-camera-caption { position:absolute; inset:50% 0 auto; text-align:center; color:#aaa; pointer-events:none; }
+.camera:has(video[data-active]) .workspace-camera-caption { display:none; }
+.usecase-empty { padding:40px 20px; color:var(--secondary); text-align:center; }
+.usecase-empty h3 { color:var(--label); margin-bottom:12px; }
+.workspace-feedback { padding:18px 20px; border-top:1px solid var(--hairline); font-size:13px; color:var(--secondary); }
+.usecase-roster .tick { font-size:10px; color:var(--label); }
+@media(max-width:600px) { .pickup-confirm { padding:0 8px; font-size:12px; } }
+
+#workspace-records .student[hidden] { display:none; }
+
+.parent-child-page .summary { padding-top:24px; padding-bottom:22px; gap:20px 32px; }
+.parent-child-page .workspace { padding-top:18px; }
+
+.parent-child-page .summary { padding-top:16px; padding-bottom:16px; gap:16px 24px; }
+.parent-child-page .workspace { padding-top:12px; }
+.parent-child-page .roster__tools { border-bottom:0; padding-bottom:12px; }
+.parent-child-page #workspace-search { background-image:none; appearance:none; padding:0 14px; width:100%; }
+
+.parent-child-page .elementary-school-name { font-family:var(--font-body); font-size:20px; font-weight:700; letter-spacing:-.3px; }
+@media(max-width:600px) { .parent-child-page .elementary-school-name { font-size:16px; } }
+
+.parent-school-title { max-width:1280px; margin:0 auto; padding:20px 24px 8px; text-align:right; font-family:var(--font-head); font-size:20px; font-weight:600; color:var(--secondary); }
+
+.parent-child-page .summary > .parent-school-title { grid-column:2; grid-row:1; align-self:center; margin:0; padding:0; color:var(--summary-muted); }
+.parent-child-page .summary > div { grid-column:1; grid-row:1; }
+@media(max-width:1068px) {
+ .parent-child-page .summary > .parent-school-title { grid-column:1; grid-row:1; }
+ .parent-child-page .summary > div { grid-column:1; grid-row:2; }
+}
+
+@media(min-width:761px) {
+ .parent-child-page .workspace { align-items:stretch; }
+ .parent-child-page .workspace > .usecase-roster { align-self:stretch; height:auto; min-height:0; contain:size; }
+}
+
+html[data-university] .parent-child-page .summary-band { border-bottom-width:1px; }
+.parent-child-page .summary { padding-bottom:28px; }
+.parent-child-page .workspace { padding-top:24px; }
+
+@media(min-width:761px) {
+ .criminal-page .workspace { grid-template-columns:minmax(0,70fr) minmax(0,30fr); }
+}
