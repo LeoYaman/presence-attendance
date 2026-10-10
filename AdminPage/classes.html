@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Classes · Presence Admin · UI prototype</title>
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Administration sidebar">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">P</span><div>Presence<span class="brand-caption">ATTENDANCE ADMIN</span></div></div>
+      <p class="nav-label">WORKSPACE</p>
+      <nav aria-label="Main navigation"><ul class="nav-list">
+        <li><a href="overview.html"><span aria-hidden="true">◫</span>Overview</a></li>
+        <li><a href="students.html"><span aria-hidden="true">♙</span>Students</a></li>
+        <li><a href="classes.html" aria-current="page"><span aria-hidden="true">▤</span>Classes</a></li>
+        <li><a href="attendance.html"><span aria-hidden="true">▦</span>Attendance</a></li>
+        <li><a href="admin.html"><span aria-hidden="true">⇄</span>Integrations</a></li>
+        <li><a href="settings.html"><span aria-hidden="true">⚙</span>Settings</a></li>
+        <li><a href="audit-history.html"><span aria-hidden="true">◷</span>Audit History</a></li>
+      </ul></nav>
+      <div class="sidebar-footer"><span class="badge neutral">UI prototype</span><p>Face recognition attendance<br>Sample workspace</p></div>
+    </aside>
+    <div class="workspace">
+      <header class="page-header"><div><p class="eyebrow">WORKSPACE / CLASSES</p><h1>Classes</h1><p>Review sample classes, instructors, and scheduled sessions.</p></div><div class="profile" aria-label="Sample administrator profile"><span class="avatar" aria-hidden="true">AM</span><div><strong>Alex Morgan</strong><span>Administrator · Sample</span></div></div></header>
+      <main id="main" tabindex="-1">
+        <div class="prototype-banner"><span class="badge neutral">UI prototype</span><p>Static sample data. Sidebar links work; actions are demonstrative. Changes are not saved and no requests are sent.</p></div>
+        <!-- Stable IDs and named controls are reserved for future backend and JavaScript integration. -->
+        <div class="page-stack"><section class="panel page-card"><h2>Class directory</h2><div class="table-scroll" role="region" aria-label="Class sample records; scroll to view all columns" tabindex="0"><table><caption class="sr-only">Static sample data</caption><thead><tr><th scope="col">Class</th><th scope="col">Class ID</th><th scope="col">Instructor</th><th scope="col">Students</th><th scope="col">Schedule (EDT)</th></tr></thead><tbody><tr><td>Computer Science 101</td><td>CLS-101</td><td>Jordan Lee</td><td>28</td><td>Mon / Wed / Fri · 09:00 AM</td></tr><tr><td>Mathematics 201</td><td>CLS-201</td><td>Taylor Smith</td><td>28</td><td>Mon / Wed / Fri · 08:00 AM</td></tr><tr><td>Physics 101</td><td>CLS-301</td><td>Casey Brown</td><td>28</td><td>Mon / Wed / Fri · 11:00 AM</td></tr></tbody></table></div><p class="help">On small screens, scroll within the table to view every column.</p></section><section class="panel page-card"><h2>Session management</h2><p>Class and schedule information is illustrative. Creating classes or starting and finalizing sessions will require backend integration.</p><a class="text-link" href="attendance.html">View session attendance →</a></section></div>
+        <footer class="page-footer"><span>Presence Admin · UI prototype</span><span>All records and settings are illustrative.</span></footer>
+      </main>
+    </div>
+  </div>
+</body>
+</html>
+

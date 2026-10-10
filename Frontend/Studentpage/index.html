@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Attendance History | Student Portal</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="student.js" defer></script>
+  <script src="customize.js" defer></script>
+</head>
+<body>
+  <header class="page-header">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">◎</span><span>Presence<span class="brand-subtitle">ATTENDANCE WORKSPACE</span></span></div>
+    <div class="header-actions">
+      <span class="prototype-badge">Student portal · Sample data</span>
+      <button class="primary-button" id="open-customizer" type="button">✦ Customize with AI</button>
+    </div>
+  </header>
+  <main class="dashboard" aria-labelledby="page-title">
+    <header class="dashboard-header">
+      <div class="identity">
+        <h1 id="page-title">Attendance History</h1>
+        <p class="student">Alex Morgan <span aria-hidden="true">·</span> Student ID: 001</p>
+        <span class="sample-label">Sample data</span>
+      </div>
+      <div class="notifications">
+        <div class="checkbox-row">
+          <input type="checkbox" id="email-notifications" name="email_notifications" aria-describedby="email-help email-prototype">
+          <label for="email-notifications">Email notifications</label>
+        </div>
+        <p id="email-help">Receive email updates about your attendance.</p>
+        <p id="email-prototype" class="prototype-note">Prototype only. Preference is not saved and no emails are sent.</p>
+      </div>
+    </header>
+
+    <!-- All records and policy below belong to this student and selected course. -->
+    <section class="history" aria-labelledby="course-title">
+      <div class="course-picker" hidden>
+        <label for="course-select">Class to view</label>
+        <select id="course-select" name="course" aria-describedby="course-feedback">
+          <option value="cs101">CS 101 · Introduction to Computer Science</option>
+          <option value="math201">MATH 201 · Calculus II</option>
+          <option value="eng102">ENG 102 · Academic Writing</option>
+        </select>
+        <p id="course-feedback" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
+      </div>
+      <div class="course-context">
+        <div>
+          <p class="eyebrow">Selected course</p>
+          <h2 id="course-title">Introduction to Computer Science <span class="course-code">CS 101</span></h2>
+        </div>
+        <div class="course-summary">
+          <p class="weeks-left"><strong>9 weeks</strong> until course ends</p>
+          <p class="course-end">Ends <time datetime="2026-12-11">Dec 11, 2026</time></p>
+          <p class="record-count">8 sessions</p>
+        </div>
+      </div>
+      <p class="term-note help-text">Sample course schedule · Weeks remaining as of <time datetime="2026-10-09">Oct 9, 2026</time>.</p>
+      <noscript><p class="help-text">Enable JavaScript to switch classes. Showing CS 101 sample attendance.</p></noscript>
+      <div class="table-scroll" tabindex="0" role="region" aria-label="Attendance history table, scroll horizontally on small screens" aria-describedby="status-help">
+        <table>
+          <caption class="visually-hidden">Alex Morgan's attendance history for Introduction to Computer Science, CS 101</caption>
+          <thead><tr><th scope="col">Date</th><th scope="col">Class Time</th><th scope="col">Course</th><th scope="col">Status</th><th scope="col">Check-in Time</th></tr></thead>
+          <tbody>
+            <tr><th scope="row"><time datetime="2026-10-09">Oct 9, 2026</time></th><td>9:00–10:30 AM</td><td>CS 101</td><td><span class="status pending">Pending</span></td><td>—</td></tr>
+            <tr><th scope="row"><time datetime="2026-10-07">Oct 7, 2026</time></th><td>9:00–10:30 AM</td><td>CS 101</td><td><span class="status present">Present</span></td><td><time datetime="2026-10-07T08:57">8:57 AM</time></td></tr>
+            <tr><th scope="row"><time datetime="2026-10-05">Oct 5, 2026</time></th><td>9:00–10:30 AM</td><td>CS 101</td><td><span class="status absent">Absent</span></td><td>—</td></tr>
+            <tr><th scope="row"><time datetime="2026-10-02">Oct 2, 2026</time></th><td>9:00–10:30 AM</td><td>CS 101</td><td><span class="status late">Late</span></td><td><time datetime="2026-10-02T09:12">9:12 AM</time></td></tr>
+            <tr><th scope="row"><time datetime="2026-09-30">Sep 30, 2026</time></th><td>9:00–10:30 AM</td><td>CS 101</td><td><span class="status absent">Absent</span></td><td>—</td></tr>
+            <tr><th scope="row"><time datetime="2026-09-28">Sep 28, 2026</time></th><td>9:00–10:30 AM</td><td>CS 101</td><td><span class="status present">Present</span></td><td><time datetime="2026-09-28T08:59">8:59 AM</time></td></tr>
+            <tr><th scope="row"><time datetime="2026-09-25">Sep 25, 2026</time></th><td>9:00–10:30 AM</td><td>CS 101</td><td><span class="status absent">Absent</span></td><td>—</td></tr>
+            <tr><th scope="row"><time datetime="2026-09-23">Sep 23, 2026</time></th><td>9:00–10:30 AM</td><td>CS 101</td><td><span class="status present">Present</span></td><td><time datetime="2026-09-23T08:55">8:55 AM</time></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p id="status-help" class="help-text">Pending means the attendance session has not been finalized.</p>
+    </section>
+
+    <section class="allowance" aria-labelledby="allowance-title">
+      <div class="allowance-heading">
+        <h2 id="allowance-title">Remaining Absence Allowance</h2>
+        <p class="allowance-total">3 used · 7 remaining · 10 allowed</p>
+      </div>
+      <!-- Ten equal segments: update with the selected course's absence totals. -->
+      <div class="allowance-bar" role="img" aria-label="Absence allowance: 3 used, 7 remaining, 10 allowed">
+        <span class="segment used"></span><span class="segment used"></span><span class="segment used"></span>
+        <span class="segment remaining"></span><span class="segment remaining"></span><span class="segment remaining"></span><span class="segment remaining"></span><span class="segment remaining"></span><span class="segment remaining"></span><span class="segment remaining"></span>
+      </div>
+      <div class="bar-legend" aria-hidden="true"><span><i class="legend-used"></i>Used</span><span><i class="legend-remaining"></i>Remaining</span></div>
+      <p class="help-text">Sample course policy for CS 101: 10 absences allowed. This is not a universal rule. Late and Pending do not count as Absent in this example.</p>
+    </section>
+  </main>
+  <dialog id="customizer" aria-labelledby="customizer-title" aria-describedby="customizer-description">
+    <header class="chat-header">
+      <div><p class="eyebrow">YOUR SPACE, YOUR STYLE</p><h2 id="customizer-title">Customize with AI</h2></div>
+      <button type="button" class="close-button" id="close-customizer" aria-label="Close customization">×</button>
+    </header>
+    <p id="customizer-description" class="chat-description">Describe your ideal page. Preview as many changes as you like; saving replaces your one saved design.</p>
+    <p class="demo-notice">Design demo · Simulated assistant with preset themes. No AI service connected.</p>
+    <div class="chat-messages" id="theme-messages" role="log" aria-label="Design conversation" aria-live="polite" aria-relevant="additions">
+      <p class="message assistant">Hi! Make this space yours. Try “Minecraft with green blocks,” “neon cyberpunk,” “ocean blue,” or “soft lavender.”</p>
+    </div>
+    <div class="theme-suggestions" aria-label="Theme ideas">
+      <button type="button" data-prompt="Minecraft with green blocks">Minecraft</button>
+      <button type="button" data-prompt="Neon cyberpunk">Cyberpunk</button>
+      <button type="button" data-prompt="Calm ocean blue">Ocean</button>
+      <button type="button" data-prompt="Soft lavender">Lavender</button>
+    </div>
+    <form id="theme-form" class="chat-form">
+      <label for="theme-prompt">Describe your design</label>
+      <div class="chat-input-row"><input id="theme-prompt" name="prompt" type="text" maxlength="400" placeholder="e.g. Give me a Minecraft theme" required autocomplete="off"><button type="submit" class="primary-button">Preview</button></div>
+    </form>
+    <footer class="chat-footer">
+      <p id="theme-state" role="status">One saved design · Unlimited changes</p>
+      <p class="save-note">Saved in this browser only. Your next save replaces the previous design.</p>
+      <div class="save-actions"><button type="button" id="reset-theme" class="secondary-button">Preview default</button><button type="button" id="save-theme" class="primary-button" disabled>Save design</button></div>
+    </footer>
+  </dialog>
+</body>
+</html>

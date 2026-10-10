@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Integrations · Presence Admin · UI prototype</title>
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Administration sidebar">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">P</span><div>Presence<span class="brand-caption">ATTENDANCE ADMIN</span></div></div>
+      <p class="nav-label">WORKSPACE</p>
+      <nav aria-label="Main navigation">
+        <!-- Shared static page routes; replace with application routes during backend integration. -->
+        <ul class="nav-list">
+          <li><a href="overview.html"><span aria-hidden="true">◫</span>Overview</a></li>
+          <li><a href="students.html"><span aria-hidden="true">♙</span>Students</a></li>
+          <li><a href="classes.html"><span aria-hidden="true">▤</span>Classes</a></li>
+          <li><a href="attendance.html"><span aria-hidden="true">▦</span>Attendance</a></li>
+          <li><a href="admin.html" aria-current="page"><span aria-hidden="true">⇄</span>Integrations</a></li>
+          <li><a href="settings.html"><span aria-hidden="true">⚙</span>Settings</a></li>
+          <li><a href="audit-history.html"><span aria-hidden="true">◷</span>Audit History</a></li>
+        </ul>
+      </nav>
+      <div class="sidebar-footer"><span class="badge neutral">UI prototype</span><p>Face recognition attendance<br>Sample workspace</p></div>
+    </aside>
+
+    <div class="workspace">
+      <header class="page-header">
+        <div><p class="eyebrow">WORKSPACE / INTEGRATIONS</p><h1>Integrations</h1><p>Connect attendance records to the tools your team uses.</p></div>
+        <div class="profile" aria-label="Sample administrator profile"><span class="avatar" aria-hidden="true">AM</span><div><strong>Alex Morgan</strong><span>Administrator · Sample</span></div></div>
+      </header>
+
+      <main id="main" tabindex="-1">
+        <div class="prototype-banner"><span class="badge neutral">UI prototype</span><p>Static sample data. Actions are demonstrative; changes are not saved and no requests are sent.</p></div>
+        <div class="content-grid">
+          <section class="panel configuration" aria-labelledby="configuration-title">
+            <div class="panel-heading"><div class="section-icon" aria-hidden="true">⇄</div><div><h2 id="configuration-title">Attendance API integration</h2><p>Configure an attendance record destination.</p></div><span class="badge neutral">Disabled by default</span></div>
+            <!-- Stable IDs, names and data-action hooks are reserved for future application logic.
+                 No action URL or submit controls: this prototype cannot transmit form data. -->
+            <form id="integration-form" aria-describedby="form-note">
+              <fieldset class="form-section"><legend>Configuration</legend>
+                <div class="field"><label for="integration-name">Integration name</label><input id="integration-name" name="integration_name" type="text" value="Campus attendance sync" autocomplete="off"></div>
+                <div class="field"><label for="endpoint">Destination API endpoint URL</label><input id="endpoint" name="destination_url" type="url" value="https://attendance.example.com/api/records" autocomplete="off" aria-describedby="endpoint-help"><p class="help" id="endpoint-help">Example destination only. Outgoing requests will run server-side.</p></div>
+                <div class="field"><label for="replacement-key">Replacement API key</label><input id="replacement-key" name="replacement_api_key" type="password" placeholder="Enter a replacement key" autocomplete="off" aria-describedby="key-help"><p id="key-help" class="help">Leave empty to keep a saved key once connected. Do not enter real credentials in this prototype.</p></div>
+                <div class="key-row"><div><span class="badge neutral">Sample saved-key indicator</span><p>Ending in <code>7X2Q</code> <span class="muted">· illustrative only</span></p></div><div class="button-group"><button type="button" data-action="replace-key">Replace key</button><button type="button" class="danger-button" data-action="remove-key">Remove key</button></div></div>
+                <div class="enable-row"><div><label for="integration-enabled">Enable integration</label><p class="help">Allow attendance delivery when backend integration is available.</p></div><input class="switch" id="integration-enabled" name="integration_enabled" type="checkbox" role="switch"></div>
+              </fieldset>
+
+              <fieldset class="form-section"><legend>Data to send</legend><p class="section-description">Send attendance records with the selected fields.</p>
+                <div class="checkbox-grid">
+                  <label><input type="checkbox" name="fields" value="student_id" checked>Student ID</label>
+                  <label><input type="checkbox" name="fields" value="class_id" checked>Class ID</label>
+                  <label><input type="checkbox" name="fields" value="session_id" checked>Session ID</label>
+                  <label><input type="checkbox" name="fields" value="attendance_status" checked>Attendance status</label>
+                  <label><input type="checkbox" name="fields" value="check_in_timestamp" checked>Check-in timestamp</label>
+                </div>
+                <p class="privacy-note"><strong>Attendance data only.</strong> Face images and biometric templates are excluded from outgoing data by default.</p>
+              </fieldset>
+
+              <fieldset class="form-section"><legend>Send timing</legend><div class="field"><label for="send-timing">When should records be sent?</label><select id="send-timing" name="send_timing" aria-describedby="timing-help"><option value="check_in">On student check-in</option><option value="attendance_change">On attendance changes</option><option value="session_finalization">After session finalization</option></select></div>
+                <p class="help" id="timing-help">Unchecked students remain <strong>Pending</strong> during active sessions. <strong>Absent</strong> is sent only after session finalization or an authorized manual decision.</p>
+              </fieldset>
+              <div class="form-footer"><p id="form-note">Demo controls only. No configuration is saved.</p><div class="button-group"><button type="button" data-action="test-connection">Test connection</button><button type="button" class="primary" data-action="save-configuration">Save configuration</button></div></div>
+            </form>
+          </section>
+
+          <aside class="support-column" aria-label="Connection and security information">
+            <section class="panel" aria-labelledby="connection-title"><p class="eyebrow">CONNECTION HEALTH</p><h2 id="connection-title">Connection status</h2><div class="connection-result"><span class="status-dot" aria-hidden="true"></span><strong>Sample result: Successful</strong></div><p>The sample endpoint accepted the test payload.</p><dl class="test-details"><dt>Last test (sample)</dt><dd><time datetime="2026-10-09T09:42:00-04:00">Oct 9, 2026 · 9:42 AM EDT</time></dd><dt>Response (sample)</dt><dd>200 OK · 248 ms</dd></dl><p class="inset-note">Once backend integration is implemented, testing will send a clearly labeled test payload. No test has run in this prototype.</p></section>
+            <section class="panel" aria-labelledby="security-title"><div class="section-icon small" aria-hidden="true">◇</div><h2 id="security-title">Built for secure delivery</h2><p>API keys will be stored securely on the backend. Saved keys will only display their last four characters.</p><p>Outgoing requests will run server-side. Credentials and biometric data must never appear in delivery history.</p><div class="divider"></div><h3>Prototype boundaries</h3><p>No API calls, storage, authentication, or actual delivery are implemented. Sidebar navigation opens static prototype pages.</p></section>
+          </aside>
+        </div>
+
+        <section class="panel history" aria-labelledby="history-title"><div class="history-heading"><div><h2 id="history-title">Delivery history</h2><p>Sample attendance events and delivery outcomes.</p></div><span class="badge neutral">3 sample records</span></div>
+          <p class="table-help" id="table-help">On small screens, scroll within the table to view every column. Retry is a demo action.</p>
+          <div class="table-scroll" role="region" aria-labelledby="history-title" aria-describedby="table-help" tabindex="0"><table><caption class="sr-only">Sample delivery history. All timestamps are Eastern Daylight Time.</caption><thead><tr><th scope="col">Timestamp (EDT)</th><th scope="col">Event</th><th scope="col">Destination</th><th scope="col">Delivery status</th><th scope="col">Action</th></tr></thead><tbody>
+            <tr><td><time datetime="2026-10-09T09:40:12-04:00">Oct 9, 2026 <span class="table-secondary">09:40:12 AM</span></time></td><td>Student check-in<span class="table-secondary">Session SES-1042</span></td><td><span class="destination">attendance.example.com/api/records</span></td><td><span class="badge success">Successful</span></td><td><span class="muted">—</span><span class="sr-only">No action needed</span></td></tr>
+            <tr><td><time datetime="2026-10-09T09:38:04-04:00">Oct 9, 2026 <span class="table-secondary">09:38:04 AM</span></time></td><td>Attendance changed<span class="table-secondary">Session SES-1042</span></td><td><span class="destination">attendance.example.com/api/records</span></td><td><span class="badge failed">Failed</span><span class="table-secondary">503 · Service unavailable</span></td><td><button type="button" class="retry" data-action="retry-delivery" data-delivery-id="sample-002" aria-label="Retry failed attendance change delivery from 9:38 AM (demo)">Retry</button></td></tr>
+            <tr><td><time datetime="2026-10-09T09:35:00-04:00">Oct 9, 2026 <span class="table-secondary">09:35:00 AM</span></time></td><td>Session finalized<span class="table-secondary">Session SES-1041</span></td><td><span class="destination">attendance.example.com/api/records</span></td><td><span class="badge pending">Pending</span><span class="table-secondary">Queued · sample only</span></td><td><span class="muted">—</span><span class="sr-only">No retry available</span></td></tr>
+          </tbody></table></div>
+        </section>
+        <footer class="page-footer"><span>Presence Admin · UI prototype</span><span>All configuration, connection results, and delivery records are illustrative.</span></footer>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

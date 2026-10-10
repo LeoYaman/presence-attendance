@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Attendance · Face recognition UI prototype</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="page-header">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">◎</span><span>Presence<span class="brand-subtitle">ATTENDANCE WORKSPACE</span></span></div>
+    <span class="prototype-badge">UI prototype · Sample data</span>
+  </header>
+  <main class="dashboard">
+    <section class="camera-column" aria-labelledby="attendance-title">
+      <header class="section-header">
+        <div><p class="eyebrow">LIVE SESSION / 01</p><h1 id="attendance-title">Class attendance</h1><p class="subtitle">A clear view of every check-in.</p></div>
+        <span class="session-pill"><span class="dot" aria-hidden="true"></span>Session active <span class="sample">(sample)</span></span>
+      </header>
+      <figure class="camera-preview" aria-labelledby="camera-caption">
+        <!-- Attach a camera MediaStream to this video in a future integration. -->
+        <video id="attendance-video" autoplay muted playsinline aria-label="Camera preview; no camera connected in this prototype"></video>
+        <div class="camera-topline"><span class="camera-indicator"><span class="dot" aria-hidden="true"></span>Camera active · Demo</span><span class="camera-id">CAM 01</span></div>
+        <div class="preview-placeholder"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><rect x="3" y="5" width="13" height="14" rx="3"/><path d="m16 10 5-3v10l-5-3"/></svg><p>Camera preview</p><span>No live camera feed connected</span></div>
+        <!-- Static detection example, not a recognition result. -->
+        <div class="detection-frame"><span class="detection-label">Alex Morgan <span>Recognized · Sample</span></span></div>
+        <figcaption id="camera-caption">Static face-detection overlay <span>Preview only</span></figcaption>
+      </figure>
+      <section class="confidence-panel" aria-labelledby="confidence-title">
+        <div class="confidence-heading"><div><h2 id="confidence-title">Recognition confidence</h2><p>Alex Morgan · Sample recognition</p></div><strong>85<span>%</span></strong></div>
+        <label class="sr-only" for="recognition-confidence">Sample recognition confidence: 85 percent</label>
+        <progress id="recognition-confidence" max="100" value="85">85%</progress>
+        <div class="confidence-footer"><span class="confidence-state"><span class="dot" aria-hidden="true"></span>High confidence</span><ul class="confidence-legend" aria-label="Illustrative confidence colors"><li><span class="dot high" aria-hidden="true"></span>High</li><li><span class="dot uncertain" aria-hidden="true"></span>Uncertain</li><li><span class="dot low" aria-hidden="true"></span>Low</li></ul></div>
+        <p class="prototype-note">Illustrative values and colors only. Production recognition thresholds are not defined.</p>
+      </section>
+    </section>
+    <aside class="sidebar" aria-label="Class details and attendance">
+      <section class="class-details" aria-labelledby="class-title">
+        <p class="eyebrow">SESSION OVERVIEW</p><h2 id="class-title">Class Details</h2>
+        <h3>Introduction to Computer Science</h3>
+        <dl><div><dt>Class code</dt><dd>CS 101 · Section A</dd></div><div><dt>Instructor</dt><dd>Dr. Emily Carter</dd></div><div><dt>Date</dt><dd><time datetime="2026-10-09">October 9, 2026</time></dd></div><div><dt>Session status</dt><dd class="active-text"><span class="dot" aria-hidden="true"></span>Active · Sample</dd></div></dl>
+      </section>
+      <section class="attendance-section" aria-labelledby="students-title">
+        <div class="list-heading"><h2 id="students-title">Student attendance</h2><span>12 students</span></div>
+        <dl class="summary" aria-label="Sample attendance summary"><div><dt>Present</dt><dd>6</dd></div><div><dt>Absent</dt><dd>1</dd></div><div><dt>Late</dt><dd>2</dd></div><div><dt>Pending</dt><dd>3</dd></div></dl>
+        <p class="list-note">Unchecked students remain Pending. Absent is a sample authorized manual decision.</p>
+        <div class="student-scroll" tabindex="0" role="region" aria-label="Scrollable sample student attendance list">
+          <ul class="student-list">
+            <li data-student-id="s01"><span class="avatar">AM</span><span class="student-name">Alex Morgan<small>Student 001</small></span><span class="status present">Present</span></li>
+            <li data-student-id="s02"><span class="avatar">JL</span><span class="student-name">Jamie Lee<small>Student 002</small></span><span class="status present">Present</span></li>
+            <li data-student-id="s03"><span class="avatar">TP</span><span class="student-name">Taylor Patel<small>Student 003</small></span><span class="status late">Late</span></li>
+            <li data-student-id="s04"><span class="avatar">JW</span><span class="student-name">Jordan Williams<small>Student 004</small></span><span class="status present">Present</span></li>
+            <li data-student-id="s05"><span class="avatar">SC</span><span class="student-name">Sam Chen<small>Student 005</small></span><span class="status pending">Pending</span></li>
+            <li data-student-id="s06"><span class="avatar">AR</span><span class="student-name">Avery Rivera<small>Student 006</small></span><span class="status present">Present</span></li>
+            <li data-student-id="s07"><span class="avatar">CB</span><span class="student-name">Casey Brown<small>Student 007</small></span><span class="status absent">Absent</span></li>
+            <li data-student-id="s08"><span class="avatar">RK</span><span class="student-name">Riley Kim<small>Student 008</small></span><span class="status late">Late</span></li>
+            <li data-student-id="s09"><span class="avatar">MN</span><span class="student-name">Morgan Nguyen<small>Student 009</small></span><span class="status present">Present</span></li>
+            <li data-student-id="s10"><span class="avatar">DH</span><span class="student-name">Drew Harris<small>Student 010</small></span><span class="status pending">Pending</span></li>
+            <li data-student-id="s11"><span class="avatar">QS</span><span class="student-name">Quinn Smith<small>Student 011</small></span><span class="status present">Present</span></li>
+            <li data-student-id="s12"><span class="avatar">RB</span><span class="student-name">Robin Brooks<small>Student 012</small></span><span class="status pending">Pending</span></li>
+          </ul>
+        </div>
+      </section>
+      <footer class="sidebar-footer">UI prototype · All attendance values are sample data.</footer>
+    </aside>
+  </main>
+</body>
+</html>
