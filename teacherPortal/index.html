@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en" data-university="ucf" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="Presence — class attendance with face recognition.">
+  <meta name="theme-color" content="#000000">
+  <title>Presence · Attendance</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- UCF web fonts: Oswald, Montserrat, Roboto Mono · Full Sail: Arvo (slab, close to Lubalin Graph), Roboto -->
+  <link href="https://fonts.googleapis.com/css2?family=Arvo:wght@400;700&family=Montserrat:wght@400;500;600;700&family=Oswald:wght@500;600&family=Roboto+Mono:wght@400;500&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script>
+    try {
+      var u = localStorage.getItem('presence-university'), t = localStorage.getItem('presence-theme');
+      if (u) document.documentElement.dataset.university = u;
+      if (!t && matchMedia('(prefers-color-scheme: dark)').matches) t = 'dark';
+      if (t) document.documentElement.dataset.theme = t;
+    } catch (e) {}
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#workspace">Skip to attendance</a>
+
+  <!-- ───────── Global nav ───────── -->
+  <header class="globalnav">
+    <div class="globalnav__inner">
+      <!-- Logos: drop the official files into /assets (see README note). Until then the name shows as text. -->
+      <a class="logo" href="#top">
+        <span class="logo__slot logo__slot--ucf">
+          <img src="assets/ucf-logo.png" alt="UCF" width="53" height="40" data-logo>
+          <span class="logo__text"><span class="logo__long">University of Central Florida</span><span class="logo__short">UCF</span></span>
+        </span>
+        <span class="logo__slot logo__slot--fullsail">
+          <img class="logo__img--light" src="assets/fullsail-logo.png" alt="Full Sail University" width="69" height="48" data-logo>
+          <img class="logo__img--dark" src="assets/fullsail-logo-white.png" alt="Full Sail University" width="69" height="48" data-logo>
+          <span class="logo__text"><span class="logo__long">Full Sail University</span><span class="logo__short">Full Sail</span></span>
+        </span>
+      </a>
+
+      <div class="globalnav__right">
+        <div class="uni-switch" role="radiogroup" aria-label="University">
+          <button type="button" role="radio" data-uni="ucf" aria-checked="true">UCF</button>
+          <button type="button" role="radio" data-uni="fullsail" aria-checked="false">Full Sail</button>
+        </div>
+        <button type="button" class="icon-btn" id="theme-btn" aria-pressed="false" aria-label="Dark mode">
+          <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M20 13.4A8 8 0 1 1 10.6 4a6.3 6.3 0 0 0 9.4 9.4z"/></svg>
+          <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6 6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ───────── Local nav ───────── -->
+  <div class="localnav" id="top">
+    <div class="localnav__inner">
+      <p class="localnav__title"><span class="localnav__product">Presence</span> CS 101 Attendance</p>
+      <p class="localnav__status" id="session-status"><span class="dot" aria-hidden="true"></span><span id="session-status-text">Session open</span></p>
+    </div>
+  </div>
+
+  <main>
+    <!-- ───────── Summary ───────── -->
+    <section class="summary-band">
+    <div class="summary">
+      <div class="summary__text">
+        <p class="kicker">Introduction to Computer Science · Section A</p>
+        <h1 class="headline"><span id="in-room">0</span> of <span id="roster-total">0</span> students are in class.</h1>
+        <p class="sub">Dr. Emily Carter · <span data-uni-text="campus">Orlando</span> · Started <span class="mono" id="session-start">—</span> · Late after 10 minutes</p>
+      </div>
+      <div class="summary__figures">
+        <div class="bar" aria-hidden="true">
+          <span class="bar__seg bar__seg--present" id="bar-present"></span>
+          <span class="bar__seg bar__seg--late" id="bar-late"></span>
+          <span class="bar__seg bar__seg--absent" id="bar-absent"></span>
+        </div>
+        <dl class="figures">
+          <div class="fig fig--present"><dd id="count-present">0</dd><dt>present</dt></div>
+          <div class="fig fig--late"><dd id="count-late">0</dd><dt>late</dt></div>
+          <div class="fig fig--absent"><dd id="count-absent">0</dd><dt>absent</dt></div>
+          <div class="fig fig--pending"><dd id="count-pending">0</dd><dt>not seen yet</dt></div>
+        </dl>
+      </div>
+    </div>
+    </section>
+
+    <!-- ───────── Workspace: camera beside roster ───────── -->
+    <div class="workspace" id="workspace">
+
+      <!-- Camera column -->
+      <section class="camera-col" aria-label="Camera check-in">
+        <figure class="camera" aria-label="Camera">
+          <video id="camera-video" autoplay muted playsinline aria-label="Live camera preview"></video>
+          <canvas id="camera-overlay" aria-hidden="true"></canvas>
+
+          <div class="camera__bar">
+            <span class="camera__state" id="camera-state"><span class="dot" aria-hidden="true"></span><span id="camera-state-text">Camera off</span></span>
+            <span class="camera__count" id="face-count-wrap" hidden><span id="face-count">0</span> in frame</span>
+          </div>
+
+          <div class="camera__empty" id="camera-empty">
+            <h2>Start the camera when class begins.</h2>
+            <p>Students who are recognized are checked in on the roster. You can tick anyone off by hand at any time.</p>
+            <div class="ctas">
+              <button type="button" class="button" id="start-camera">Start camera</button>
+              <button type="button" class="link link--on-dark" id="start-demo">Run a demo</button>
+            </div>
+          </div>
+
+          <button type="button" class="link link--on-dark camera__stop" id="stop-camera" hidden>Stop camera</button>
+        </figure>
+
+        <!-- Recognition result -->
+        <section class="match" id="recognition" aria-labelledby="match-label" aria-live="polite">
+          <div class="match__who">
+            <p class="label" id="match-label">Recognized</p>
+            <p class="match__name" id="match-name">No one yet</p>
+            <p class="match__note" id="recognition-sub">Waiting for the recognition service.</p>
+          </div>
+          <div class="match__score">
+            <p class="match__pct mono" id="confidence-value">—</p>
+            <p class="match__level" id="match-level"></p>
+          </div>
+          <div class="match__form">
+            <label class="sr-only" for="checkin-student">Student</label>
+            <select id="checkin-student" class="field" disabled>
+              <option value="">Select a student</option>
+            </select>
+            <button type="button" class="button" id="checkin-confirm" disabled>Check in</button>
+          </div>
+          <p class="match__rules">Above 85% checks in automatically. 60–85% asks you to confirm. Below 60% asks you to choose.</p>
+        </section>
+      </section>
+
+      <!-- Roster column -->
+      <section class="roster" id="roster" aria-labelledby="roster-title">
+        <div class="roster__head">
+          <h2 id="roster-title" class="roster__title">Roster</h2>
+          <p class="roster__hint">Tick students off as they walk in.</p>
+        </div>
+
+        <div class="roster__tools">
+          <label class="search">
+            <span class="sr-only">Search students</span>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <input type="search" id="roster-search" placeholder="Search by name or ID" autocomplete="off">
+          </label>
+          <div class="tabs" role="radiogroup" aria-label="Show">
+            <button type="button" role="radio" data-filter="all" aria-checked="true">All <span class="mono" id="n-all"></span></button>
+            <button type="button" role="radio" data-filter="pending" aria-checked="false">Not seen</button>
+            <button type="button" role="radio" data-filter="present" aria-checked="false">Present</button>
+            <button type="button" role="radio" data-filter="late" aria-checked="false">Late</button>
+            <button type="button" role="radio" data-filter="absent" aria-checked="false">Absent</button>
+          </div>
+        </div>
+
+        <ul class="students" id="student-list" aria-label="Students"></ul>
+        <p class="students__empty" id="empty-state" hidden>No students match.</p>
+
+        <div class="approve">
+          <button type="button" class="button button--block button--large" id="approve-btn">Approve attendance</button>
+          <p class="approve__note" id="approve-note">If facial recognition fails, check the list and approve it as shown.</p>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer__inner">
+      <p>Presence is a prototype for the Full Sail University “Pathways &amp; Perception” challenge. Student names and attendance are sample data.</p>
+    </div>
+  </footer>
+
+  <!-- Approve confirmation -->
+  <dialog class="dialog" id="approve-dialog" aria-labelledby="dialog-title">
+    <form method="dialog">
+      <h2 id="dialog-title">Approve attendance?</h2>
+      <p class="dialog__text" id="dialog-text"></p>
+      <label class="check" id="pending-row">
+        <input type="checkbox" id="mark-pending-absent" checked>
+        <span>Count students not seen yet as absent</span>
+      </label>
+      <div class="dialog__actions">
+        <button type="submit" value="cancel" class="button button--secondary">Cancel</button>
+        <button type="submit" value="approve" class="button">Approve attendance</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="notice" id="toast" role="status" aria-live="polite">
+    <span id="toast-text"></span>
+    <button type="button" class="link" id="toast-undo" hidden>Undo</button>
+  </div>
+
+  <script src="app.js" type="module"></script>
+</body>
+</html>
