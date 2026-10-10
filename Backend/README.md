@@ -97,3 +97,10 @@ The embedded PGlite database persists at `Backend/.local-db/pgdata`. Eight clear
 
 This mode has an ordinary event table and local `date_bin` bucket functions. It has **no TimescaleDB extension or hypertable**, and is not evidence of Tiger Data performance or native Timescale verification. Local schema checksums are tracked separately from production migrations; original migrations are untouched. For the sponsor demo, use a real TimescaleDB service.
 
+
+
+## Controlled team recognition camera
+
+From the attendance frontend select **Team camera demo**, or open `/team-demo.html`. In local synthetic mode, with the four team photographs imported using the existing `scripts/import-team-references.mjs` offline workflow, confirm participant consent and start the webcam. Multiple consenting teammates can appear together. The camera shows first names and SFace match scores; these scores are not accuracy probabilities. The optional Olivia-as-Unknown simulation is explicitly labeled and affects only this preview response.
+
+The new staff/CSRF-protected `/api/team-demo/detect` route restricts mappings to the four existing team reference records and requires management permission for their group. It saves no attendance, alerts, reviews or camera frames and does not call the existing scenario modules. Existing attendance pages, check-in endpoints and migrations remain unchanged. Models and the Python environment use the existing face-worker setup.

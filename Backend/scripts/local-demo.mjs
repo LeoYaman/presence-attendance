@@ -108,7 +108,7 @@ async function main(){
     // Fixed synthetic teacher session, gated before any route or cookie is issued.
     // Remote mode intentionally disables the localhost fallback.
     if(!authorizeLocalDemoRequest(req,configuration)){res.writeHead(403);res.end('Demo access denied');return;}
-    if(req.method==='GET' && (req.url==='/'||req.url==='/index.html'||req.url==='/demo-alerts.html'||req.url==='/criminal-detection.html'||req.url==='/criminal-test.html'||req.url==='/student.html?demo=1')){
+    if(req.method==='GET' && (req.url==='/'||req.url==='/index.html'||req.url==='/team-demo.html'||req.url==='/demo-alerts.html'||req.url==='/criminal-detection.html'||req.url==='/criminal-test.html'||req.url==='/student.html?demo=1')){
       try{
         const token=opaqueToken(); const expiry=new Date(Date.now()+8*3600000);
         await pool.query('INSERT INTO attendance.auth_sessions(token_hash,user_id,csrf_token,expires_at) VALUES($1,$2,$3,$4)',[tokenDigest(token),demo.teacherId,opaqueToken(),expiry]);

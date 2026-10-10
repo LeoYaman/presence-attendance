@@ -1,3 +1,4 @@
+import {createTeamDemo} from './team-demo.mjs';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { createReadStream } from 'node:fs';
@@ -60,15 +61,16 @@ export function createApp({ pool, publicOrigin = 'http://localhost:3000', secure
   const attempts = new Map();
   const dummyHashPromise = hashPassword(opaqueToken());
   const adminApi = createAdminApi({pool,fail,uuid,timestamp,fields,recordingStore});
+  const teamDemo=createTeamDemo({pool,faceWorker,fail,fields,enabled:syntheticCamera});
   const passengerApi = createPassengerApi({pool,faceWorker,fail,fields});
   const staticFiles = new Map([['/', ['index.html','text/html; charset=utf-8']], ['/index.html',['index.html','text/html; charset=utf-8']],
     ['/app.js',['app.js','text/javascript; charset=utf-8']], ['/camera-client.js',['camera-client.js','text/javascript; charset=utf-8']], ['/recording-client.js',['recording-client.js','text/javascript; charset=utf-8']], ['/styles.css',['styles.css','text/css; charset=utf-8']]]);
   // Publish only the UI files; credentials, datasets and backend source stay private.
   const uiFiles = {
-    'text/html; charset=utf-8': ['criminal-detection.html','criminal-test.html','parent-child.html','login.html','student.html',
+    'text/html; charset=utf-8': ['team-demo.html','criminal-detection.html','criminal-test.html','parent-child.html','login.html','student.html',
       'Frontend/Studentpage/index.html','Frontend/Teacherpage/index.html','teacherPortal/index.html'],
-    'text/css; charset=utf-8': ['usecase-workspace.css','neutral-theme.css','login.css','student.css','Frontend/Studentpage/styles.css','Frontend/Teacherpage/styles.css','teacherPortal/styles.css'],
-    'text/javascript; charset=utf-8': ['criminal-data.js','usecase-workspace.js','passenger-camera.js','login.js','student.js','customize.js','Frontend/Studentpage/student.js','Frontend/Studentpage/customize.js','teacherPortal/app.js'],
+    'text/css; charset=utf-8': ['team-demo.css','usecase-workspace.css','neutral-theme.css','login.css','student.css','Frontend/Studentpage/styles.css','Frontend/Teacherpage/styles.css','teacherPortal/styles.css'],
+    'text/javascript; charset=utf-8': ['team-demo.js','criminal-data.js','usecase-workspace.js','passenger-camera.js','login.js','student.js','customize.js','Frontend/Studentpage/student.js','Frontend/Studentpage/customize.js','teacherPortal/app.js'],
     'image/png': ['ucf-logo.png','ucf-header-logo.png','fullsail-logo.png','fullsail-logo-white.png','fullsail-header-light.png','fullsail-header-dark.png',
       'assets/ucf-logo.png','assets/fullsail-logo.png','assets/fullsail-logo-white.png']
   };
@@ -136,7 +138,7 @@ export function createApp({ pool, publicOrigin = 'http://localhost:3000', secure
     const recordingChunkRoute=path.match(/^\/api\/recordings\/([^/]+)\/chunks\/(\d+)$/);
     if (!['GET','POST'].includes(method) && !(method==='PUT'&&recordingChunkRoute)) fail(405,'method_not_allowed','Method not allowed');
     if (['POST','PUT'].includes(method) && req.headers.origin !== origin) fail(403,'invalid_origin','Request must come from this application');
-    const body = method === 'POST' ? await readBody(req, (path==='/api/passengers/detect'||/^\/api\/groups\/[^/]+\/faces\/(detect|enroll)$/.test(path)) ? 400000 : 8192) : null;
+    const body = method === 'POST' ? await readBody(req, (path==='/api/team-demo/detect'||path==='/api/passengers/detect'||/^\/api\/groups\/[^/]+\/faces\/(detect|enroll)$/.test(path)) ? 400000 : 8192) : null;
     if (path === '/api/login' && method === 'POST') {
       fields(body,['email','password'],['email','password']);
       if (typeof body.email !== 'string' || body.email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email.trim()) ||
@@ -167,6 +169,9 @@ export function createApp({ pool, publicOrigin = 'http://localhost:3000', secure
         fail(403,'invalid_csrf','Refresh the page and try again');
     }
     if (path === '/api/me' && method === 'GET') return {user:userView(user),csrfToken:user.csrf_token,capabilities:{syntheticCamera}};
+    if(path==='/api/team-demo/detect' && method==='POST') {
+      try{return await teamDemo({user,body});}catch(error){if(error instanceof HttpError)throw error;throw new HttpError(error.status||503,error.code||'face_service_unavailable',error.message||'Face service unavailable');}
+    }
     if (path === '/api/passengers' || path === '/api/passengers/detect') return passengerApi({method,path,user,body});
     if (path === '/api/demo-alerts' || path === '/api/demo-alerts/simulate') {
       if (!['teacher','admin'].includes(user.role)) fail(403,'forbidden','This simulation requires a teacher or administrator');
