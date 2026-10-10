@@ -1197,3 +1197,5 @@ html[data-skin="violet"] .fig { --c: #fff; }
  .student-profile__details { display: none; }
  .student-profile__avatar { width: 33px; height: 33px; }
 }
+
+.table-wrap { position: relative; }

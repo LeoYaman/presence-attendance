@@ -1,0 +1,268 @@
+{
+  "students": [
+    {
+      "id": "s1",
+      "name": "AT&T sample s1",
+      "photo": "people_faces/s1.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s2",
+      "name": "AT&T sample s2",
+      "photo": "people_faces/s2.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s3",
+      "name": "AT&T sample s3",
+      "photo": "people_faces/s3.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s4",
+      "name": "AT&T sample s4",
+      "photo": "people_faces/s4.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s5",
+      "name": "AT&T sample s5",
+      "photo": "people_faces/s5.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s6",
+      "name": "AT&T sample s6",
+      "photo": "people_faces/s6.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s7",
+      "name": "AT&T sample s7",
+      "photo": "people_faces/s7.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s8",
+      "name": "AT&T sample s8",
+      "photo": "people_faces/s8.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s9",
+      "name": "AT&T sample s9",
+      "photo": "people_faces/s9.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s10",
+      "name": "AT&T sample s10",
+      "photo": "people_faces/s10.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s11",
+      "name": "AT&T sample s11",
+      "photo": "people_faces/s11.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s12",
+      "name": "AT&T sample s12",
+      "photo": "people_faces/s12.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s13",
+      "name": "AT&T sample s13",
+      "photo": "people_faces/s13.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s14",
+      "name": "AT&T sample s14",
+      "photo": "people_faces/s14.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s15",
+      "name": "AT&T sample s15",
+      "photo": "people_faces/s15.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s16",
+      "name": "AT&T sample s16",
+      "photo": "people_faces/s16.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s17",
+      "name": "AT&T sample s17",
+      "photo": "people_faces/s17.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s18",
+      "name": "AT&T sample s18",
+      "photo": "people_faces/s18.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s19",
+      "name": "AT&T sample s19",
+      "photo": "people_faces/s19.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s20",
+      "name": "AT&T sample s20",
+      "photo": "people_faces/s20.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s21",
+      "name": "AT&T sample s21",
+      "photo": "people_faces/s21.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s22",
+      "name": "AT&T sample s22",
+      "photo": "people_faces/s22.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s23",
+      "name": "AT&T sample s23",
+      "photo": "people_faces/s23.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s24",
+      "name": "AT&T sample s24",
+      "photo": "people_faces/s24.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s25",
+      "name": "AT&T sample s25",
+      "photo": "people_faces/s25.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s26",
+      "name": "AT&T sample s26",
+      "photo": "people_faces/s26.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s27",
+      "name": "AT&T sample s27",
+      "photo": "people_faces/s27.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s28",
+      "name": "AT&T sample s28",
+      "photo": "people_faces/s28.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s29",
+      "name": "AT&T sample s29",
+      "photo": "people_faces/s29.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s30",
+      "name": "AT&T sample s30",
+      "photo": "people_faces/s30.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s31",
+      "name": "AT&T sample s31",
+      "photo": "people_faces/s31.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s32",
+      "name": "AT&T sample s32",
+      "photo": "people_faces/s32.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s33",
+      "name": "AT&T sample s33",
+      "photo": "people_faces/s33.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s34",
+      "name": "AT&T sample s34",
+      "photo": "people_faces/s34.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s35",
+      "name": "AT&T sample s35",
+      "photo": "people_faces/s35.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s36",
+      "name": "AT&T sample s36",
+      "photo": "people_faces/s36.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s37",
+      "name": "AT&T sample s37",
+      "photo": "people_faces/s37.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s38",
+      "name": "AT&T sample s38",
+      "photo": "people_faces/s38.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s39",
+      "name": "AT&T sample s39",
+      "photo": "people_faces/s39.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "s40",
+      "name": "AT&T sample s40",
+      "photo": "people_faces/s40.pgm",
+      "kind": "sample"
+    },
+    {
+      "id": "team_anthony",
+      "name": "Anthony",
+      "photo": "people_faces/WIN_20261010_00_51_21_Pro.jpg",
+      "kind": "team"
+    },
+    {
+      "id": "team_leo",
+      "name": "Leo",
+      "photo": "people_faces/WIN_20261010_00_51_36_Pro.jpg",
+      "kind": "team"
+    },
+    {
+      "id": "team_rebbeca",
+      "name": "Rebbeca",
+      "photo": "people_faces/WIN_20261010_00_52_21_Pro.jpg",
+      "kind": "team"
+    },
+    {
+      "id": "team_olivia",
+      "name": "Olivia",
+      "photo": "people_faces/WIN_20261010_00_52_47_Pro.jpg",
+      "kind": "team"
+    }
+  ]
+}

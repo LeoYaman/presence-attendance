@@ -1,20 +1,34 @@
-# Logos
+﻿# Presence
 
-| File | Size | Shown at | Used on |
-|---|---|---|---|
-| `ucf-logo.png` | 450 × 342 | 40px tall | UCF theme, black nav (both modes) |
-| `fullsail-logo.png` | 540 × 376 | 48px tall | Full Sail theme, light mode (white nav) |
-| `fullsail-logo-white.png` | 540 × 376 | 48px tall | Full Sail theme, dark mode (charcoal nav) |
+Open these two pages from this folder (keep the folder structure as is):
 
-All three are trimmed to the artwork and have transparent backgrounds.
-`fullsail-logo-white.png` is the same logo with the charcoal lettering turned
-white so it reads on dark backgrounds; the orange circle and plane are unchanged.
+- `index.html` — teacher view (camera + roster)
+- `student.html` — student portal
+- `overview.html` — admin (links to Students, Classes, Attendance, Integrations = `admin.html`, Settings, Audit history)
 
-If a file is missing, the site shows the university name as text instead.
+```
+presence-site/
+├── index.html      teacher page   → uses styles.css + app.js
+├── styles.css
+├── app.js
+├── student.html    student page   → uses student.css + student.js + customize.js
+├── student.css     (self-contained; doesn't need styles.css)
+├── student.js
+├── customize.js
+├── overview.html, students.html, classes.html, attendance.html,
+│   admin.html, settings.html, audit-history.html   admin pages → use admin.css + admin.js
+├── admin.css       (self-contained; doesn't need styles.css)
+├── admin.js
+├── INTEGRATION.md  notes for the backend team
+└── assets/         logos used by both pages
+```
 
-Note: the UCF file supplied is the interlocking athletics-style "UCF". UCF's
-brand guide (ucf.edu/brand/logo-and-identity) reserves that mark for
-Athletics and asks academic uses to use the stacked UCF mark instead, which is
-available on request from UCF Brand and Marketing. To switch, replace
-`ucf-logo.png` with the stacked mark and adjust its `width`/`height` in
-`index.html` to the new file's proportions.
+The camera only works when the page is served over http://localhost or https
+(for example with VS Code Live Server), not when opened as a file.
+
+## Python webcam recognition prototype
+
+See [face_data/README.md](face_data/README.md) to run local webcam recognition.
+This is a separate Python prototype; it is not connected to the web portal and
+does not record attendance yet. The shared demo includes reference photos and students.json; each teammate
+downloads the models using the documented command.
