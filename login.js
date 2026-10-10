@@ -20,8 +20,27 @@ applyAppearance();
 const loginDialog = document.getElementById('login-dialog');
 let selectedLoginRole = 'Professor';
 document.querySelectorAll('[data-login-role]').forEach(button => {
-  button.addEventListener('click', () => {
+  button.addEventListener('click', async () => {
     selectedLoginRole = button.dataset.loginRole;
+    if (window.location.hostname.endsWith('.proxy.runpod.net')) {
+      const destinations = { Professor: '/index.html', Student: '/student.html?demo=1', Faculty: '/parent-child.html', Security: '/criminal-detection.html' };
+      const destination = destinations[selectedLoginRole];
+      if (!destination) return;
+      button.disabled = true;
+      try {
+        const response = await fetch('/api/presentation-login', {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' }, body: '{}'
+        });
+        const result = await response.json();
+        if (!response.ok || result?.user?.role !== 'teacher') throw new Error(result?.error?.message || 'Demo workspace unavailable.');
+        window.location.assign(destination);
+      } catch (error) {
+        window.alert(error.message || 'Demo workspace unavailable. Please try again.');
+        button.disabled = false;
+      }
+      return;
+    }
     document.getElementById('login-title').textContent = `${selectedLoginRole} Sign In`;
     document.getElementById('login-form').reset();
     document.querySelector('#login-form button[type="submit"]').disabled = false;
