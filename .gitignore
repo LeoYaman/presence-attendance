@@ -1,0 +1,8 @@
+﻿face_data/.venv/
+face_data/models/
+face_data/__pycache__/
+face_data/students/
+face_data/students.json
+face_data/attendance/
+.env
+.env.*
