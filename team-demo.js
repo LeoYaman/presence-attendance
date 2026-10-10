@@ -1,5 +1,10 @@
 (() => {
+ const root=document.documentElement;
+ function university(key){if(!['ucf','fullsail'].includes(key))return;root.dataset.university=key;document.querySelectorAll('[data-uni]').forEach(b=>b.setAttribute('aria-checked',String(b.dataset.uni===key)));try{localStorage.setItem('presence-university',key);}catch{}}
+ function theme(mode){root.dataset.theme=mode;$('theme-btn').setAttribute('aria-pressed',String(mode==='dark'));$('theme-btn').setAttribute('aria-label',mode==='dark'?'Light mode':'Dark mode');try{localStorage.setItem('presence-theme',mode);}catch{}}
  const $=id=>document.getElementById(id);let stream,csrf,timer,version=0;
+ document.querySelectorAll('[data-uni]').forEach(b=>b.onclick=()=>university(b.dataset.uni));$('theme-btn').onclick=()=>theme(root.dataset.theme==='dark'?'light':'dark');
+ try{university(localStorage.getItem('presence-university')||'ucf');theme(localStorage.getItem('presence-theme')||'light');}catch{}
  const status=text=>{$('status').textContent=text;};
  function clear(){const c=$('overlay');c.getContext('2d').clearRect(0,0,c.width,c.height);}
  function stop(){version++;clearTimeout(timer);stream?.getTracks().forEach(t=>t.stop());stream=null;$('video').srcObject=null;clear();$('review-demo').hidden=true;$('start').disabled=!csrf||!$('consent').checked;$('stop').disabled=true;status('Camera stopped.');}
@@ -11,7 +16,7 @@
    const response=await fetch('/api/team-demo/detect',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':csrf},body:JSON.stringify({image:frame.toDataURL('image/jpeg',0.75).split(',')[1],consent:true,simulateUnknown:$('simulate-unknown').checked})});
    const data=await response.json();if(!response.ok)throw new Error(data.error?.message||'Detection failed');
    if(token!==version)return;
-   const canvas=$('overlay');canvas.width=v.videoWidth;canvas.height=v.videoHeight;const ctx=canvas.getContext('2d');ctx.strokeStyle='#22e875';ctx.fillStyle='#22e875';ctx.lineWidth=3;ctx.font='18px sans-serif';
+   const canvas=$('overlay');$('video').parentElement.style.aspectRatio=v.videoWidth+'/'+v.videoHeight;canvas.width=v.videoWidth;canvas.height=v.videoHeight;const ctx=canvas.getContext('2d');ctx.strokeStyle='#22e875';ctx.fillStyle='#22e875';ctx.lineWidth=3;ctx.font='18px sans-serif';
    for(const face of data.faces){ctx.strokeStyle=ctx.fillStyle=face.name==='Unknown'?'#ffb347':'#22e875';const b=face.box,x=b.x*canvas.width,y=b.y*canvas.height;ctx.strokeRect(x,y,b.width*canvas.width,b.height*canvas.height);ctx.fillText(face.name+(face.simulated?' (demo simulation)':'')+(Number.isFinite(face.similarity)?' - '+Math.round(face.similarity*100)+'% match score':''),Math.max(0,x),Math.max(20,y-8));}
    status(data.faces.length+' face'+(data.faces.length===1?'':'s')+' in team demo - live');
    const unknowns=data.faces.filter(face=>face.name==='Unknown');$('review-demo').hidden=!unknowns.length;$('review-demo').textContent=unknowns.length?'Demo: unmatched participant - ask staff to verify their visitor pass. '+(unknowns.some(f=>f.simulated)?'Olivia is intentionally marked Unknown for this roleplay. ':'')+'This is a local display, not a notification or saved review item.':'';
