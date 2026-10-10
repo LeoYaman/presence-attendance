@@ -54,10 +54,6 @@ showPassword.addEventListener("click", () => {
 form.addEventListener("submit", async event => {
   event.preventDefault();
   status.hidden = false;
-  if (selectedLoginRole === 'Faculty' || selectedLoginRole === 'Security') {
-    status.textContent = `${selectedLoginRole} sign-in is not connected yet.`;
-    return;
-  }
   status.textContent = "Signing in…";
   submitButton.disabled = true;
 
@@ -74,13 +70,21 @@ form.addEventListener("submit", async event => {
       throw new Error(result?.error?.message || "Sign-in failed. Check your email and password.");
     }
 
-    const destinations = {
-      teacher: "/index.html",
-      student: "/student.html"
+    const workspaces = {
+      Professor: { roles: ['teacher'], path: '/index.html' },
+      Student: { roles: ['student'], path: '/student.html' },
+      Faculty: { roles: ['teacher', 'admin'], path: '/parent-child.html' },
+      Security: { roles: ['teacher', 'admin'], path: '/criminal-detection.html' }
     };
-    const destination = destinations[result?.user?.role];
-    if (!destination) throw new Error("Your account does not have a supported workspace.");
-    window.location.assign(destination);
+    const workspace = workspaces[selectedLoginRole];
+    const serverRole = result?.user?.role;
+    if (!workspace || !workspace.roles.includes(serverRole)) {
+      const roleName = typeof serverRole === 'string' ? serverRole : 'unknown';
+      status.textContent = `You are signed in as ${roleName}, but that account cannot access the ${selectedLoginRole} workspace. Your session is active.`;
+      submitButton.disabled = false;
+      return;
+    }
+    window.location.assign(workspace.path);
   } catch (error) {
     status.textContent = error instanceof TypeError
       ? "Unable to reach the sign-in service. Please try again."

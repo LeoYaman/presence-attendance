@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {randomUUID} from 'node:crypto';
 import {localDatabase} from './local-fixture.mjs';
-test('runtime grant template supports workflow row locks without permitting group/enrollment edits',async () => {
+test('runtime grant template supports admin management while preserving attendance/audit history and face boundaries',async () => {
   const fixture=await localDatabase(); const q=fixture.db.query;
   try {
     await q('CREATE ROLE presence_runtime');
@@ -25,9 +25,15 @@ test('runtime grant template supports workflow row locks without permitting grou
     await q('SELECT attendance.close_session($1,$2)',[session,teacher]);
     await q('COMMIT');
     await q('UPDATE attendance.users SET email_notifications=true WHERE id=$1',[teacher]);
-    await assert.rejects(q("UPDATE attendance.users SET role='admin' WHERE id=$1",[teacher]),/permission denied/);
-    await assert.rejects(q("UPDATE attendance.groups SET name='Changed' WHERE id=$1",[group]),/permission denied/);
+    await q("UPDATE attendance.users SET role='admin' WHERE id=$1",[teacher]);
+    await q("UPDATE attendance.groups SET name='Changed' WHERE id=$1",[group]);
+    await q('SELECT * FROM attendance.admin_settings');
+    await q('SELECT * FROM attendance.audit_logs');
+    assert.deepEqual((await q('SELECT * FROM demo.passengers')).rows,[]);
+    await assert.rejects(q("INSERT INTO demo.passengers(person_id,name,reference_key) VALUES(gen_random_uuid(),'Test','team_leo')"),/permission denied/);
     await assert.rejects(q("UPDATE attendance.face_enrollments SET status='failed' WHERE id=$1",[face]),/permission denied/);
     await assert.rejects(q('DELETE FROM attendance.attendance_records WHERE session_id=$1',[session]),/permission denied/);
+    await assert.rejects(q('DELETE FROM attendance.audit_logs'),/permission denied/);
+    await assert.rejects(q('DELETE FROM attendance.people WHERE id=$1',[person]),/permission denied/);
   } finally {await q('RESET ROLE');await fixture.engine.close();}
 });

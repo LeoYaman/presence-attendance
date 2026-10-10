@@ -377,6 +377,28 @@ test('the first qualifying live face atomically creates an open session and save
   assert.equal(h.state.students[0].status, 'present'); assert.equal(h.cam.mode, 'live');
 });
 
+test('a qualifying face replaces an expired open session and saves into the current session', async () => {
+  const h = harness(); h.cam.mode = 'live'; h.state.group.code = 'PRESENCE-TEAM-REFERENCES';
+  h.state.session.ends_at = '2026-10-10T11:05:00Z';
+  h.state.sessions = [h.state.session];
+  const currentSession = { id: 'current-session', status: 'open', starts_at: '2026-10-10T12:01:00Z', ends_at: '2026-10-10T13:01:00Z' };
+  h.handle(path => path === '/api/groups/g1/checkins'
+    ? response({ session: currentSession, record: h.record, roster: [{ person_id: 'p1', person_code: '001', full_name: 'Test Student', record_id: 'r1', status: 'present', checked_in_at: h.record.checked_in_at, source: 'teacher' }] })
+    : response(h.dashboard('present', 'open')));
+
+  h.recognizeServer([sface()]); await settle();
+
+  const requests = h.requests.filter(request => request.options.method === 'POST');
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].path, '/api/groups/g1/checkins');
+  assert.deepEqual(JSON.parse(requests[0].options.body), { personId: 'p1' });
+  assert.equal(h.state.session.id, 'current-session');
+  assert.equal(h.element('#session-select').value, 'current-session');
+  assert.equal(h.state.students[0].status, 'present');
+  assert.equal(h.events.filter(event => event.type === 'presence:checkin').length, 1);
+  assert.equal(h.cam.mode, 'live');
+});
+
 test('two faces share session preparation and each gets its own saved check-in', async () => {
   const h = harness(), atomic = deferred(); h.state.session = null; h.cam.mode = 'live';
   h.state.students.push({ id: 'p2', name: 'Second Student', number: '002', status: 'pending' });

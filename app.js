@@ -60,7 +60,7 @@ async function signedIn(payload) {
 }
 async function reconnect() { const version = contextVersion; $('#reconnect-btn').disabled = true; $('#connection-message').textContent = 'Connecting to the attendance backend…'; try { const payload = await api('/me'); if (version === contextVersion) await signedIn(payload); } catch (error) { $('#connection-panel').hidden = false; $('#connection-message').textContent = error.status === 401 ? 'No authorized backend session is connected. Attendance recording is unavailable.' : `Attendance server unavailable: ${error.message}`; } finally { $('#reconnect-btn').disabled = false; } }
 $('#reconnect-btn').addEventListener('click', reconnect);
-$('#logout-btn').addEventListener('click', async () => { try { await api('/logout', {}); showSignedOut(); } catch (error) { report(error); } });
+$('#logout-btn').addEventListener('click', async () => { try { await api('/logout', {}); showSignedOut(); window.location.replace('/login.html'); } catch (error) { if (error.status === 401) window.location.replace('/login.html'); else report(error); } });
 async function chooseGroup(id) {
   const version = ++contextVersion; stopCamera(); state.session = null; state.students = []; state.dashboard = null; state.approved = false; state.syncing = false;
   state.group = state.groups.find(g => String(g.id) === String(id)) || null; render(); if (!state.group) return;
@@ -201,7 +201,9 @@ async function confirmAttendance(studentId = $('#checkin-student').value, automa
     if (!current()) return false;
     const prepared = await singleFlight(`prepare:${version}:${groupId}`, async () => {
     if (!current()) return;
-    if (!state.session) {
+    const expiredOpenSession = automatic && state.session?.status === 'open' &&
+      Date.parse(state.session.ends_at) <= Date.now();
+    if (!state.session || expiredOpenSession) {
       if (automatic) {
         const data = await api(`/groups/${groupId}/checkins`, { personId: student.id });
         if (!current()) return;

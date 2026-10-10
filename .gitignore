@@ -9,6 +9,8 @@ face_data/attendance/
 node_modules/
 .pnpm-store/
 .local-db/
+.runpod/
+.ui-backups/
 .recordings/
 .tools/
 .tmp/

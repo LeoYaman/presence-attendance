@@ -116,9 +116,9 @@ export function createRecordingStore({ root = process.env.RECORDINGS_DIR || join
       recording.lastUploadedAt ??= recording.chunkCount ? new Date(recording.createdAt).toISOString() : null;
       if (recording.version !== 1 || recording.id !== id || uuid(recording.groupId) !== recording.groupId || uuid(recording.ownerId) !== recording.ownerId ||
         mime(recording.mimeType) !== recording.mimeType || !['recording', 'processing_failed', 'finished'].includes(recording.status) ||
-        !Number.isFinite(recording.createdAt) || Date.parse(recording.expiresAt) !== recording.createdAt + RECORDING_RETENTION_MS ||
+        !Number.isFinite(recording.createdAt) || !Number.isSafeInteger(recording.retentionMs ?? RECORDING_RETENTION_MS) || (recording.retentionMs ?? RECORDING_RETENTION_MS)<86400000 || (recording.retentionMs ?? RECORDING_RETENTION_MS)>90*86400000 || Date.parse(recording.expiresAt) !== recording.createdAt + (recording.retentionMs ?? RECORDING_RETENTION_MS) ||
         !Array.isArray(recording.chunks) || recording.chunks.length !== recording.chunkCount || recording.chunkCount > RECORDING_MAX_CHUNKS ||
-        !Number.isFinite(Date.parse(recording.startedAt)) || !Number.isSafeInteger(recording.bytes) || recording.bytes < 0 || recording.bytes > RECORDING_MAX_BYTES ||
+        !Number.isFinite(Date.parse(recording.startedAt)) || !Number.isSafeInteger(recording.maxBytes ?? RECORDING_MAX_BYTES) || (recording.maxBytes ?? RECORDING_MAX_BYTES)<1048576 || (recording.maxBytes ?? RECORDING_MAX_BYTES)>RECORDING_MAX_BYTES || !Number.isSafeInteger(recording.bytes) || recording.bytes < 0 || recording.bytes > (recording.maxBytes ?? RECORDING_MAX_BYTES) ||
         (recording.chunkCount > 0 && !Number.isFinite(Date.parse(recording.lastUploadedAt))) ||
         (recording.status === 'finished' && (recording.seekable !== true || !Number.isSafeInteger(recording.mediaBytes) || recording.mediaBytes < 1)) ||
         recording.chunks.some(chunk => !Number.isSafeInteger(chunk.size) || chunk.size < 1 || chunk.size > RECORDING_MAX_CHUNK_BYTES || !/^[a-f0-9]{64}$/.test(chunk.hash)) ||
@@ -145,20 +145,37 @@ export function createRecordingStore({ root = process.env.RECORDINGS_DIR || join
     if (!info.isFile() || info.isSymbolicLink()) throw failure(500, 'UNSAFE_RECORDING_FILE', 'Recording data is unavailable.');
     return info;
   }
+  let storageTail=Promise.resolve();
+  let currentStorageLimit=10240*1048576;
+  function storageWrite(operation){const pending=storageTail.catch(()=>{}).then(operation);storageTail=pending;return pending;}
+  async function usage(){
+    await initialize();let usedBytes=0,recordings=0;
+    for(const entry of await readdir(directory,{withFileTypes:true})){
+      if(!UUID.test(entry.name)||!entry.isDirectory()||entry.isSymbolicLink())continue;
+      const path=await safeDirectory(entry.name);recordings++;
+      for(const name of await readdir(path)){const info=await lstat(join(path,name));if(info.isFile()&&!info.isSymbolicLink())usedBytes+=info.size;}
+    }
+    return {mode:'local',used_bytes:usedBytes,recording_count:recordings,limit_bytes:currentStorageLimit};
+  }
   const store = {
-    async create({ groupId, ownerId, mimeType, startedAt } = {}) {
+    setStorageLimit(bytes){if(!Number.isSafeInteger(bytes)||bytes<1048576||bytes>1048576*1048576)throw failure(400,'INVALID_STORAGE_LIMIT','Storage limit must be 1 MiB to 1 TiB.');currentStorageLimit=bytes;},
+    usage,
+    create({ groupId, ownerId, mimeType, startedAt, retentionDays=7,maxMb=1024 } = {}) {return storageWrite(async()=>{
       await initialize();
+      if(!Number.isInteger(retentionDays)||retentionDays<1||retentionDays>90||!Number.isInteger(maxMb)||maxMb<1||maxMb>1024)throw failure(400,'INVALID_RECORDING_POLICY','Invalid recording policy.');
+      if((await usage()).used_bytes+65536>currentStorageLimit)throw failure(413,'RECORDING_STORAGE_LIMIT','Recording storage limit has been reached.');
       const createdAt = now();
       const starts = timestamp(startedAt, createdAt);
       if (starts > createdAt + 60_000 || starts < createdAt - RECORDING_MAX_DURATION_MS) throw failure(400, 'INVALID_RECORDING_TIME', 'Recording start must be within the last two hours.');
       const recording = { version: 1, id: randomUUID(), groupId: uuid(groupId, 'Group ID'), ownerId: uuid(ownerId, 'Owner ID'),
         mimeType: mime(mimeType), startedAt: new Date(starts).toISOString(), status: 'recording', createdAt,
-        expiresAt: new Date(createdAt + RECORDING_RETENTION_MS).toISOString(), chunkCount: 0, bytes: 0, chunks: [], lastUploadedAt: null };
+        retentionMs:retentionDays*86400000,maxBytes:maxMb*1048576,
+        expiresAt: new Date(createdAt + retentionDays*86400000).toISOString(), chunkCount: 0, bytes: 0, chunks: [], lastUploadedAt: null };
       const path = pathFor(recording.id);
       await mkdir(path);
       try { await save(path, recording); } catch (error) { await rm(path, { recursive: true, force: true }); throw error; }
       return publicMetadata(recording);
-    },
+    });},
     async get(id) { return publicMetadata((await load(id)).recording); },
     async list(groupId) {
       groupId = uuid(groupId, 'Group ID');
@@ -178,7 +195,7 @@ export function createRecordingStore({ root = process.env.RECORDINGS_DIR || join
       if (!Buffer.isBuffer(data) || data.length === 0 || data.length > RECORDING_MAX_CHUNK_BYTES) return Promise.reject(failure(413, 'INVALID_RECORDING_CHUNK', 'Recording chunks must contain 1 byte to 8 MiB.'));
       if (!Number.isSafeInteger(sequence) || sequence < 0) return Promise.reject(failure(400, 'INVALID_CHUNK_SEQUENCE', 'Chunk sequence must be a nonnegative integer.'));
       const bytes = Buffer.from(data);
-      return serialized(id, async () => {
+      return storageWrite(()=>serialized(id, async () => {
         const { recording, path } = await load(id);
         const hash = createHash('sha256').update(bytes).digest('hex');
         if (sequence < recording.chunkCount) {
@@ -188,7 +205,8 @@ export function createRecordingStore({ root = process.env.RECORDINGS_DIR || join
         }
         if (recording.status !== 'recording') throw failure(409, 'RECORDING_FINISHED', 'Recording is already finished.');
         if (sequence !== recording.chunkCount) throw failure(409, 'CHUNK_OUT_OF_ORDER', `Expected chunk sequence ${recording.chunkCount}.`);
-        if (now() - recording.createdAt > RECORDING_MAX_DURATION_MS + RECORDING_UPLOAD_GRACE_MS || sequence >= RECORDING_MAX_CHUNKS || recording.bytes + bytes.length > RECORDING_MAX_BYTES) throw failure(413, 'RECORDING_LIMIT', 'Recording exceeds its upload deadline or storage limit.');
+        if (now() - recording.createdAt > RECORDING_MAX_DURATION_MS + RECORDING_UPLOAD_GRACE_MS || sequence >= RECORDING_MAX_CHUNKS || recording.bytes + bytes.length > (recording.maxBytes ?? RECORDING_MAX_BYTES)) throw failure(413, 'RECORDING_LIMIT', 'Recording exceeds its upload deadline or storage limit.');
+        if((await usage()).used_bytes+bytes.length+65536>currentStorageLimit)throw failure(413,'RECORDING_STORAGE_LIMIT','Recording storage limit has been reached.');
         const destination = chunkPath(path, sequence);
         // An uncommitted orphan after a crash can be overwritten safely: the
         // manifest is the commit boundary, and prior committed chunks stay intact.
@@ -197,7 +215,7 @@ export function createRecordingStore({ root = process.env.RECORDINGS_DIR || join
         const updated = { ...recording, chunks: [...recording.chunks, { hash, size: bytes.length }], chunkCount: sequence + 1, bytes: recording.bytes + bytes.length, lastUploadedAt: new Date(now()).toISOString() };
         await save(path, updated);
         return publicMetadata(updated);
-      });
+      }));
     },
     finish(id, { endedAt } = {}) { return finalize(id, { endedAt }); },
     async media(id) {
@@ -217,7 +235,7 @@ export function createRecordingStore({ root = process.env.RECORDINGS_DIR || join
         await serialized(entry.name, async () => {
           try {
             const { recording, path } = await load(entry.name, { allowExpired: true });
-            if (now() >= recording.createdAt + RECORDING_RETENTION_MS) {
+            if (now() >= Date.parse(recording.expiresAt)) {
               await safeDirectory(entry.name);
               await rm(path, { recursive: true, force: true });
               removed++;
@@ -244,7 +262,7 @@ export function createRecordingStore({ root = process.env.RECORDINGS_DIR || join
       (!recording.lastRecoveryAttemptAt || now() - recording.lastRecoveryAttemptAt >= RECORDING_INACTIVITY_MS);
   }
   function finalize(id, { endedAt, recovery } = {}) {
-      return serialized(id, async () => {
+      return storageWrite(()=>serialized(id, async () => {
         const { recording, path } = await load(id);
         if (recording.status === 'finished') return recovery ? null : publicMetadata(recording);
         if (recovery && (recording.lastUploadedAt !== recovery.lastUploadedAt || !isStale(recording))) return null;
@@ -253,6 +271,8 @@ export function createRecordingStore({ root = process.env.RECORDINGS_DIR || join
         const ends = timestamp(endedAt, fallback);
         if (ends < starts || ends > starts + RECORDING_MAX_DURATION_MS || ends > now() + 60_000) throw failure(400, 'INVALID_RECORDING_TIME', 'Recording end must follow its start and stay within two hours.');
         if (recording.chunkCount === 0) throw failure(409, 'RECORDING_EMPTY', 'Recording has no video chunks.');
+        // Reserve workspace for concatenation and remux before starting either write.
+        if((await usage()).used_bytes+2*recording.bytes+65536>currentStorageLimit)throw failure(413,'RECORDING_STORAGE_LIMIT','Free recording storage before finalizing this video.');
         const prepared = { ...recording, endedAt: new Date(ends).toISOString(),
           ...(recovery ? { interrupted: true, lastRecoveryAttemptAt: now() } : {}) };
         // Keep captured end time if the process crashes or processing must retry.
@@ -293,7 +313,7 @@ export function createRecordingStore({ root = process.env.RECORDINGS_DIR || join
           await rm(sourcePath, { force: true }).catch(() => {});
           return publicMetadata(finished);
         } finally { await Promise.all([rm(temporary, { force: true }), rm(processed, { force: true })]); }
-      });
+      }));
   }
   return store;
 }

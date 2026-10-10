@@ -1,0 +1,25 @@
+{
+  "records": [
+    {
+      "id": "demo-orion-01",
+      "name": "Mira Vale",
+      "scenario": "A fictional visitor asks for help finding the north hall.",
+      "synthetic": true,
+      "fictional": true
+    },
+    {
+      "id": "demo-cypress-02",
+      "name": "Rowan Finch",
+      "scenario": "A fictional practice alert is raised near the library entrance.",
+      "synthetic": true,
+      "fictional": true
+    },
+    {
+      "id": "demo-flight-booking",
+      "name": "Fictional reservation DEMO-FLIGHT-001",
+      "scenario": "Manual demo: Not allowed on this flight. Fictional booking only; unrelated to passenger identities or face recognition.",
+      "synthetic": true,
+      "fictional": true
+    }
+  ]
+}

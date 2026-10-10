@@ -22,20 +22,30 @@ const video = document.getElementById('workspace-video');
 const start = document.getElementById('start-camera');
 const stop = document.getElementById('stop-camera');
 let stream;
+let cameraGeneration = 0;
 function stopCamera() {
+ cameraGeneration++;
  stream?.getTracks().forEach(track => track.stop()); stream = null;
  video.srcObject = null; delete video.dataset.active;
  start.disabled = false; stop.disabled = true;
  document.getElementById('camera-state-text').textContent = 'Camera off';
+ window.dispatchEvent(new CustomEvent('workspace:camera-stop'));
 }
 start.addEventListener('click', async () => {
+ const generation = ++cameraGeneration;
  start.disabled = true;
+ stop.disabled = false;
  try {
-  stream = await navigator.mediaDevices.getUserMedia({video:true,audio:false});
+  const requestedStream = await navigator.mediaDevices.getUserMedia({video:true,audio:false});
+  if (generation !== cameraGeneration) { requestedStream.getTracks().forEach(track => track.stop()); return; }
+  stream = requestedStream;
+  stream.getTracks().forEach(track => track.addEventListener('ended', stopCamera, {once:true}));
   video.srcObject = stream; video.dataset.active = 'true'; stop.disabled = false;
-  document.getElementById('camera-state-text').textContent = 'Camera on · Preview only';
+  document.getElementById('camera-state-text').textContent = document.body.classList.contains('criminal-page') ? 'Camera on · Passenger recognition' : 'Camera on · Preview only';
+  window.dispatchEvent(new CustomEvent('workspace:camera-start', {detail:{video}}));
  } catch {
-  start.disabled = false;
+  if (generation !== cameraGeneration) return;
+  start.disabled = false; stop.disabled = true;
   document.getElementById('camera-state-text').textContent = 'Camera unavailable. Check browser camera permissions.';
  }
 });

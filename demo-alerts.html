@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Presence fictional alert presentation demo. No faculty security notification is sent.">
+  <title>Fictional alert demo · Presence</title>
+  <link rel="stylesheet" href="/demo-alerts.css">
+  <script src="/demo-alerts.js" defer></script>
+</head>
+<body>
+  <header class="topbar"><a href="/">Presence</a><a href="/login.html">Sign in / use cases</a></header>
+  <main>
+    <p class="eyebrow">PRESENTATION SANDBOX · SYNTHETIC DATA</p>
+    <h1>Fictional alert demo</h1>
+    <p class="intro">Explore a changing demo feed, choose a fictional record, and manually simulate an alert scenario.</p>
+    <aside class="disclosure" role="note"><strong>DEMO ONLY — no real call or notification.</strong><p>Faculty security and other people are never contacted by this demo. All records and scenarios are fictional. This page does not use a camera, face recognition, or real identities.</p></aside>
+    <section class="account" aria-label="Session status"><p id="account">Checking authenticated session…</p><button id="refresh" type="button" disabled>Refresh feed</button></section>
+    <p id="status" role="status" aria-live="polite">Connecting…</p>
+    <p id="source-status" role="status" aria-live="polite" hidden></p>
+    <div class="workspace">
+      <section class="card" aria-labelledby="feed-heading">
+        <p class="eyebrow">01 · DYNAMIC DATABASE FEED</p><h2 id="feed-heading">Fictional records</h2>
+        <p class="muted">Refreshes every 10 seconds while this page is open. Additions, changes, and removals appear on the next successful refresh.</p>
+        <label for="record">Select a fictional record</label>
+        <select id="record" disabled><option value="">Choose a fictional record</option></select>
+        <p id="count" class="muted">No feed loaded.</p>
+        <dl><dt>Name</dt><dd id="record-name">—</dd><dt>Synthetic scenario</dt><dd id="record-scenario">Select a record to view its scenario.</dd></dl>
+        <button id="simulate" class="primary" type="button" disabled>Simulate demo alert</button>
+        <p class="muted">Only this button triggers the scenario. Selecting a record or refreshing the feed does not trigger an alert.</p>
+      </section>
+      <section class="card result" aria-labelledby="result-heading">
+        <p class="eyebrow">02 · SIMULATED RESULT</p><h2 id="result-heading">Waiting for simulation</h2>
+        <p id="result-message" aria-live="polite">Choose a fictional record, then press “Simulate demo alert”.</p>
+        <p class="result-disclosure">Faculty security is not contacted. No external notification. Synthetic scenario only.</p>
+      </section>
+    </div>
+    <p class="footer-note">A record is a presentation scenario, not a claim about a real person. This demo is separate from attendance and recognition workflows.</p>
+  </main>
+</body>
+</html>

@@ -50,6 +50,7 @@ $$("img[data-logo]").forEach(img => {
 });
 
 const state = { user: null, csrf: "", preview: false, profile: null, groups: [], history: [], summary: [], students: [], personId: "", groupId: "", version: 0, busy: false, saving: false };
+const studentSelectionMode = ['1', 'select'].includes(new URLSearchParams(window.location.search).get('demo')) || new URLSearchParams(window.location.search).get('view') === 'students';
 const labels = { present: "Present", late: "Late", absent: "Absent", pending: "Pending" };
 const courseSelect = $("#course-select"), previewSelect = $("#preview-select"), preference = $("#email-notifications"), historyBody = $("tbody", $(".history"));
 function message(text) { $("#attendance-state").textContent = text; }
@@ -144,7 +145,11 @@ function renderCourse(announce = false) {
 function renderProfile(payload) {
   if (!payload.groups.length) resetRecords("No classes assigned yet.");
   state.profile = payload.profile; state.groups = payload.groups; state.history = payload.history; state.summary = payload.summary;
-  if (!state.groups.some(group => group.id === state.groupId)) state.groupId = state.groups[0]?.id || "";
+  if (!state.groups.some(group => group.id === state.groupId)) {
+    const savedCheckins = state.history.filter(record => record.checked_in_at && state.groups.some(group => group.id === record.group_id));
+    const latest = savedCheckins.reduce((best, record) => !best || Date.parse(record.checked_in_at) > Date.parse(best.checked_in_at) ? record : best, null);
+    state.groupId = latest?.group_id || state.groups[0]?.id || "";
+  }
   const name = state.profile.full_name;
   $("#profile-name").textContent = name; $("#profile-id").textContent = `${state.preview ? "Read-only preview" : "Student"} · ID ${state.profile.person_code}`;
   $("#student-profile").setAttribute("aria-label", `${state.preview ? "Read-only preview of" : "Student profile for"} ${name}`);
@@ -152,7 +157,10 @@ function renderProfile(payload) {
   $("#student-kicker").textContent = `${name} · Student ID ${state.profile.person_code}${state.preview ? " · Read-only preview" : ""}`;
   preference.checked = Boolean(state.profile.notify_absence); preference.disabled = state.preview || state.saving;
   $("#email-help").textContent = state.preview ? "Notification preferences are read-only in student preview." : "Save your attendance email preference. Email delivery is not configured yet.";
-  options(courseSelect, state.groups, state.groupId, group => `${group.course_code} · ${group.name}`);
+  options(courseSelect, state.groups, state.groupId, group => {
+    const checkins = state.history.filter(record => record.group_id === group.id && record.checked_in_at).length;
+    return `${group.course_code} · ${group.name}${checkins ? ` · ${checkins} check-ins` : ''}`;
+  });
   $(".course-picker:not(#preview-picker)").hidden = state.groups.length === 0;
   if (state.groupId) renderCourse();
   else {
@@ -161,6 +169,7 @@ function renderProfile(payload) {
   }
 }
 async function refreshAttendance() {
+  if (studentSelectionMode) { await refreshSelectedStudent(); return; }
   if (state.saving) return;
   const version = ++state.version; state.busy = true; $("#refresh-attendance").disabled = true;
   message(state.profile ? "Refreshing saved attendance…" : "Loading saved attendance…");
@@ -191,6 +200,57 @@ async function refreshAttendance() {
       message("Your sign-in session is unavailable. Sign in to load your saved attendance.");
     } else if (error.status === 403 || error.status === 404 || !state.profile) { resetRecords("Attendance unavailable."); message(error.message); }
     else message(`Refresh failed: ${error.message} Displayed records may be out of date.`);
+  } finally {
+    if (version === state.version) { state.busy = false; $("#refresh-attendance").disabled = false; }
+  }
+}
+async function refreshSelectedStudent() {
+  const version = ++state.version;
+  state.busy = true; state.preview = true;
+  $("#refresh-attendance").disabled = true;
+  $("#student-signin").hidden = true;
+  $("#preview-picker").hidden = false;
+  $("label[for='preview-select']").textContent = 'Student';
+  $("#preview-picker .help").textContent = 'Choose a student to view their attendance.';
+  message('Loading saved attendance…');
+  try {
+    let identity;
+    try { identity = await api('/api/me'); }
+    catch (error) {
+      if (error.status !== 401) throw error;
+      const response = await fetch('/api/presentation-login', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error?.message || 'Unable to open the student workspace.');
+      identity = result;
+    }
+    if (!['teacher', 'admin'].includes(identity.user.role)) throw new Error('The professor account is required to view these students.');
+    state.user = identity.user; state.csrf = identity.csrfToken;
+    const available = await api('/api/student-preview');
+    if (version !== state.version) return;
+    const choices = [
+      ['PRESENCE-TEAM-LEO', 'Leo'], ['PRESENCE-TEAM-REBBECA', 'Rebeca'],
+      ['PRESENCE-TEAM-ANTHONY', 'Antony'], ['PRESENCE-TEAM-OLIVIA', 'Olivia']
+    ];
+    state.students = choices.flatMap(([code, name]) => {
+      const record = available.students.find(item => item.person_code === code);
+      return record ? [{ ...record, display_name: name }] : [];
+    });
+    if (state.students.length !== 4) throw new Error('Leo, Rebeca, Antony and Olivia must be assigned to the professor in the database.');
+    if (!state.students.some(student => student.id === state.personId)) state.personId = state.students[0].id;
+    options(previewSelect, state.students, state.personId, student => student.display_name);
+    const selected = state.students.find(student => student.id === state.personId);
+    const payload = await api('/api/student-preview/' + encodeURIComponent(selected.id));
+    if (version !== state.version) return;
+    renderProfile(payload);
+    $("#profile-name").textContent = selected.display_name;
+    $("#profile-id").textContent = 'Student · ID ' + payload.profile.person_code;
+    $("#student-kicker").textContent = selected.display_name + ' · Student attendance';
+    $("#email-help").textContent = 'Attendance is shown from saved class records.';
+    message('Saved attendance updated.');
+  } catch (error) {
+    if (version !== state.version) return;
+    state.students = []; previewSelect.replaceChildren(); previewSelect.disabled = true;
+    resetRecords('Attendance unavailable.'); message(error.message);
   } finally {
     if (version === state.version) { state.busy = false; $("#refresh-attendance").disabled = false; }
   }

@@ -8,6 +8,8 @@ import { transaction } from './database.mjs';
 import { syntheticRecognition } from './camera.mjs';
 import { createFaceWorker } from './face-worker.mjs';
 import { createRecordingStore } from './recording-store.mjs';
+import { createAdminApi } from './admin.mjs';
+import { createPassengerApi } from './passengers.mjs';
 import demoCatalog from '../../assets/demo-catalog.json' with { type: 'json' };
 
 export class HttpError extends Error {
@@ -51,24 +53,27 @@ WHERE s.status='closed' AND s.starts_at<=now()
 GROUP BY bucket ORDER BY bucket`;
 
 export function createApp({ pool, publicOrigin = 'http://localhost:3000', secureCookies = false,
-  syntheticCamera = false, frontendRoot = new URL('../../',import.meta.url), recognitionAdapter = syntheticRecognition, faceWorker = createFaceWorker(), recordingStore = createRecordingStore() } = {}) {
+  syntheticCamera = false, demoAlerts = null, frontendRoot = new URL('../../',import.meta.url), recognitionAdapter = syntheticRecognition, faceWorker = createFaceWorker(), recordingStore = createRecordingStore() } = {}) {
   if (!pool) throw new Error('A database pool is required');
   const origin = new URL(publicOrigin).origin;
   if (secureCookies && !origin.startsWith('https://')) throw new Error('Secure cookies require an HTTPS PUBLIC_ORIGIN');
   const attempts = new Map();
   const dummyHashPromise = hashPassword(opaqueToken());
+  const adminApi = createAdminApi({pool,fail,uuid,timestamp,fields,recordingStore});
+  const passengerApi = createPassengerApi({pool,faceWorker,fail,fields});
   const staticFiles = new Map([['/', ['index.html','text/html; charset=utf-8']], ['/index.html',['index.html','text/html; charset=utf-8']],
     ['/app.js',['app.js','text/javascript; charset=utf-8']], ['/camera-client.js',['camera-client.js','text/javascript; charset=utf-8']], ['/recording-client.js',['recording-client.js','text/javascript; charset=utf-8']], ['/styles.css',['styles.css','text/css; charset=utf-8']]]);
   // Publish only the UI files; credentials, datasets and backend source stay private.
   const uiFiles = {
-    'text/html; charset=utf-8': ['login.html','student.html','parent-child.html','criminal-detection.html',
+    'text/html; charset=utf-8': ['criminal-detection.html','criminal-test.html','parent-child.html','login.html','student.html',
       'Frontend/Studentpage/index.html','Frontend/Teacherpage/index.html','teacherPortal/index.html'],
-    'text/css; charset=utf-8': ['login.css','student.css','usecase-workspace.css','neutral-theme.css','Frontend/Studentpage/styles.css','Frontend/Teacherpage/styles.css','teacherPortal/styles.css'],
-    'text/javascript; charset=utf-8': ['login.js','student.js','usecase-workspace.js','customize.js','Frontend/Studentpage/student.js','Frontend/Studentpage/customize.js','teacherPortal/app.js'],
+    'text/css; charset=utf-8': ['usecase-workspace.css','neutral-theme.css','login.css','student.css','Frontend/Studentpage/styles.css','Frontend/Teacherpage/styles.css','teacherPortal/styles.css'],
+    'text/javascript; charset=utf-8': ['criminal-data.js','usecase-workspace.js','passenger-camera.js','login.js','student.js','customize.js','Frontend/Studentpage/student.js','Frontend/Studentpage/customize.js','teacherPortal/app.js'],
     'image/png': ['ucf-logo.png','ucf-header-logo.png','fullsail-logo.png','fullsail-logo-white.png','fullsail-header-light.png','fullsail-header-dark.png',
       'assets/ucf-logo.png','assets/fullsail-logo.png','assets/fullsail-logo-white.png']
   };
   for (const [type,names] of Object.entries(uiFiles)) for (const name of names) staticFiles.set('/'+name,[name,type]);
+  for (const [name,type] of [['demo-alerts.html','text/html'],['demo-alerts.js','text/javascript'],['demo-alerts.css','text/css']]) staticFiles.set('/'+name,[name,type+'; charset=utf-8']);
   // Only publish the named fictional portraits, never arbitrary dataset paths.
   for (const student of demoCatalog.students) {
     if (!/^assets\/student-photos\/STU-\d{4}-[a-z]+(?:-[a-z]+)*\.png$/.test(student.photo)) throw new Error('Invalid demo portrait path');
@@ -127,11 +132,11 @@ export function createApp({ pool, publicOrigin = 'http://localhost:3000', secure
       const bytes = await readFile(new URL(name,frontendRoot));
       res.writeHead(200,{'Content-Type':type,'Cache-Control':'no-cache'}); res.end(method === 'HEAD' ? undefined : bytes); return;
     }
-    if (url.search) fail(400,'unsupported_query','Query parameters are unsupported');
+    if (url.search && !path.startsWith('/api/admin/')) fail(400,'unsupported_query','Query parameters are unsupported');
     const recordingChunkRoute=path.match(/^\/api\/recordings\/([^/]+)\/chunks\/(\d+)$/);
     if (!['GET','POST'].includes(method) && !(method==='PUT'&&recordingChunkRoute)) fail(405,'method_not_allowed','Method not allowed');
     if (['POST','PUT'].includes(method) && req.headers.origin !== origin) fail(403,'invalid_origin','Request must come from this application');
-    const body = method === 'POST' ? await readBody(req, /^\/api\/groups\/[^/]+\/faces\/(detect|enroll)$/.test(path) ? 400000 : 8192) : null;
+    const body = method === 'POST' ? await readBody(req, (path==='/api/passengers/detect'||/^\/api\/groups\/[^/]+\/faces\/(detect|enroll)$/.test(path)) ? 400000 : 8192) : null;
     if (path === '/api/login' && method === 'POST') {
       fields(body,['email','password'],['email','password']);
       if (typeof body.email !== 'string' || body.email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email.trim()) ||
@@ -162,6 +167,21 @@ export function createApp({ pool, publicOrigin = 'http://localhost:3000', secure
         fail(403,'invalid_csrf','Refresh the page and try again');
     }
     if (path === '/api/me' && method === 'GET') return {user:userView(user),csrfToken:user.csrf_token,capabilities:{syntheticCamera}};
+    if (path === '/api/passengers' || path === '/api/passengers/detect') return passengerApi({method,path,user,body});
+    if (path === '/api/demo-alerts' || path === '/api/demo-alerts/simulate') {
+      if (!['teacher','admin'].includes(user.role)) fail(403,'forbidden','This simulation requires a teacher or administrator');
+      if (!demoAlerts) fail(503,'demo_disabled','The fictional alert demo is not enabled');
+      if (path === '/api/demo-alerts' && method === 'GET') return {synthetic:true,records:await demoAlerts.list(),sync:demoAlerts.getStatus?.()};
+      if (path === '/api/demo-alerts/simulate' && method === 'POST') {
+        fields(body,['id'],['id']);
+        if (typeof body.id !== 'string' || !/^demo-[a-z0-9-]{1,64}$/.test(body.id)) fail(400,'invalid_demo_id','Choose a fictional demo scenario');
+        const result = await demoAlerts.simulate(body.id);
+        if (!result) fail(404,'not_found','This fictional scenario is no longer active');
+        return result;
+      }
+      fail(405,'method_not_allowed','Method not allowed');
+    }
+    if (path.startsWith('/api/admin/')) return adminApi({req,res,url,user,body});
     const recordingGroupRoute=path.match(/^\/api\/groups\/([^/]+)\/recordings$/);
     const recordingRoute=path.match(/^\/api\/recordings\/([^/]+)\/(finish|video)$/);
     if(recordingGroupRoute||recordingChunkRoute||recordingRoute){
@@ -177,11 +197,17 @@ export function createApp({ pool, publicOrigin = 'http://localhost:3000', secure
         if(method==='GET')return {recordings:await storeCall(()=>recordingStore.list(groupId))};
         if(method==='POST'){
           fields(body,['mimeType','startedAt'],['mimeType','startedAt']);
-          return {recording:await storeCall(()=>recordingStore.create({groupId,ownerId:user.id,mimeType:body.mimeType,startedAt:timestamp(body.startedAt)}))};
+          const policy=(await pool.query('SELECT * FROM attendance.admin_settings WHERE singleton=true')).rows[0];
+          recordingStore.setStorageLimit?.(policy.recording_storage_max_mb*1048576);
+          return {recording:await storeCall(()=>recordingStore.create({groupId,ownerId:user.id,mimeType:body.mimeType,startedAt:timestamp(body.startedAt),retentionDays:policy.recording_retention_days,maxMb:policy.recording_max_mb}))};
         }
         fail(405,'method_not_allowed','Method not allowed');
       }
       const id=uuid((recordingChunkRoute||recordingRoute)[1]);
+      if(method==='POST'||method==='PUT'){
+        const policy=(await pool.query('SELECT recording_storage_max_mb FROM attendance.admin_settings WHERE singleton=true')).rows[0];
+        recordingStore.setStorageLimit?.(policy.recording_storage_max_mb*1048576);
+      }
       const recording=await storeCall(()=>recordingStore.get(id));
       await authorizeGroup(recording.groupId);
       if(recordingChunkRoute&&method==='PUT'){
@@ -283,7 +309,7 @@ export function createApp({ pool, publicOrigin = 'http://localhost:3000', secure
         if(!session){
           session=(await db.query(`WITH new_window AS (SELECT clock_timestamp() AS starts_at)
             INSERT INTO attendance.attendance_sessions(group_id,starts_at,ends_at,late_after_minutes,created_by)
-            SELECT $1,starts_at,starts_at+interval '1 hour',15,$2 FROM new_window RETURNING *`,[groupId,user.id])).rows[0];
+            SELECT $1,starts_at,starts_at+interval '1 hour',(SELECT default_late_after_minutes FROM attendance.admin_settings WHERE singleton=true),$2 FROM new_window RETURNING *`,[groupId,user.id])).rows[0];
           await db.query('SELECT attendance.open_session($1,$2)',[session.id,user.id]);
         }
         const record=(await db.query('SELECT * FROM attendance.record_check_in($1,$2,$3)',[session.id,personId,user.id])).rows[0];
@@ -325,7 +351,7 @@ export function createApp({ pool, publicOrigin = 'http://localhost:3000', secure
         if (action === 'sessions' && method === 'GET') return {sessions:(await db.query('SELECT * FROM attendance.attendance_sessions WHERE group_id=$1 ORDER BY starts_at DESC LIMIT 100',[groupId])).rows};
         if (action === 'sessions' && method === 'POST') {
           fields(body,['startsAt','endsAt','lateAfterMinutes'],['startsAt','endsAt']);
-          const starts = timestamp(body.startsAt); const ends = timestamp(body.endsAt); const late = body.lateAfterMinutes ?? 10;
+          const starts = timestamp(body.startsAt); const ends = timestamp(body.endsAt); const late = body.lateAfterMinutes ?? (await db.query('SELECT default_late_after_minutes FROM attendance.admin_settings WHERE singleton=true')).rows[0].default_late_after_minutes;
           if (ends <= starts || !Number.isInteger(late) || late < 0 || late > 1440) fail(400,'invalid_session','End must follow start and late threshold must be 0–1440 minutes');
           const group = (await db.query('SELECT * FROM attendance.groups WHERE id=$1 FOR UPDATE',[groupId])).rows[0];
           if (!group.is_active) fail(409,'inactive_group','Group is inactive');
@@ -430,7 +456,13 @@ export function createApp({ pool, publicOrigin = 'http://localhost:3000', secure
     }
   });
   let recordingCleanup;
-  const cleanRecordings=()=>recordingStore.cleanup().catch(()=>console.error('Recording retention cleanup failed; it will retry.'));
+  const cleanRecordings=async()=>{
+    try{
+      const policy=(await pool.query('SELECT recording_storage_max_mb FROM attendance.admin_settings WHERE singleton=true')).rows[0];
+      recordingStore.setStorageLimit?.(policy.recording_storage_max_mb*1048576);
+      await recordingStore.cleanup();
+    }catch{console.error('Recording retention cleanup failed; it will retry.');}
+  };
   server.on('listening', () => {
     faceWorker.start?.(); cleanRecordings();
     recordingCleanup=setInterval(cleanRecordings,5*60*1000);recordingCleanup.unref();

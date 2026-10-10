@@ -421,15 +421,15 @@ test('atomic first check-in creates one session, enforces scope and rolls back i
 });
 
 test('static allowlist blocks credentials/datasets; logout, inactive accounts and expiry revoke access',async () => {
-  for (const path of ['/login.html','/student.html','/AdminPage/overview.html','/teacherPortal/index.html','/Frontend/Studentpage/index.html',
-    '/student.css?v=preview','/AdminPage/admin.css?v=preview','/student.js','/assets/ucf-logo.png',
+  for (const path of ['/login.html','/student.html','/parent-child.html','/criminal-detection.html','/teacherPortal/index.html','/Frontend/Studentpage/index.html',
+    '/student.css?v=preview','/usecase-workspace.css?v=preview','/passenger-camera.js','/student.js','/assets/ucf-logo.png',
     '/assets/student-photos/STU-1001-emma-wilson.png','/assets/student-photos/STU-1030-julian-hayes.png',
     '/assets/student-photos/mapping.json']) {
     const response=await fetch(`${origin}${path}`);
     assert.equal(response.status,200,path);
     assert.ok(response.headers.get('content-type'),path);
   }
-  for (const path of ['/Backend/.env','/face_data/README.txt','/.git/config']) assert.equal((await fetch(`${origin}${path}`)).status,404);
+  for (const path of ['/Backend/.env','/face_data/README.txt','/.git/config','/AdminPage/overview.html','/AdminPage/admin.css']) assert.equal((await fetch(`${origin}${path}`)).status,404);
   for (const path of ['/teacherPortal/index.html','/Frontend/Teacherpage/index.html']) {
     const response=await fetch(`${origin}${path}`,{redirect:'manual'});
     assert.equal(response.status,303);

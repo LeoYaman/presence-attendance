@@ -29,7 +29,7 @@ function harness(handler,role='student') {
   function element(selector){assert.ok(nodes.has(selector),`Missing selector ${selector}`);return nodes.get(selector);}
   const events={},requests=[],intervals=[];
   const document={documentElement:element('root'),hidden:false,querySelector:element,querySelectorAll:()=>[],createElement:()=>new Element(),createTextNode:value=>{const node=new Element();node.textContent=value;return node;},addEventListener:(name,callback)=>events[name]=callback};
-  const context=vm.createContext({document,Intl,Date,console,localStorage:{getItem:()=>null,setItem(){}},matchMedia:()=>({matches:false}),getComputedStyle:()=>({getPropertyValue:()=>''}),setInterval:(callback,ms)=>intervals.push({callback,ms}),fetch:async(path,options)=>{requests.push({path,options});return path==='/api/me'?response({user:{id:'u1',role},csrfToken:'csrf-token'}):handler(path,options);}});
+  const context=vm.createContext({document,Intl,Date,console,URLSearchParams,window:{location:{search:""}},localStorage:{getItem:()=>null,setItem(){}},matchMedia:()=>({matches:false}),getComputedStyle:()=>({getPropertyValue:()=>''}),setInterval:(callback,ms)=>intervals.push({callback,ms}),fetch:async(path,options)=>{requests.push({path,options});return path==='/api/me'?response({user:{id:'u1',role},csrfToken:'csrf-token'}):handler(path,options);}});
   vm.runInContext(source+'\nglobalThis.testing={state,refreshAttendance};',context);
   return {...context.testing,nodes,element,requests,document,events,intervals};
 }
@@ -115,4 +115,13 @@ test('manual refresh cannot discard a pending preference save acknowledgment',as
   const count=h.requests.length;await h.refreshAttendance();assert.equal(h.requests.length,count);assert.equal(h.element('#refresh-attendance').disabled,true);
   release(response({notify_absence:true}));await saving;
   assert.equal(h.state.profile.notify_absence,true);assert.equal(h.element('#refresh-attendance').disabled,false);
+});
+
+test('student opens the course with the newest saved check-in and preserves manual course choice on refresh',async()=>{
+  const second={...group,id:'g2',course_code:'NEW101',name:'Recent attendance class'};
+  const data=payload();data.groups=[group,second];data.history.push({...data.history[0],group_id:'g2',checked_in_at:'2026-10-10T19:02:39Z'});data.summary.push({...data.summary[0],group_id:'g2'});
+  const h=harness(()=>response(data));await settle();
+  assert.equal(h.state.groupId,'g2');assert.equal(h.element('#fact-code').textContent,'NEW101');
+  h.element('#course-select').value='g1';h.element('#course-select').listeners.change();await h.refreshAttendance();
+  assert.equal(h.state.groupId,'g1');assert.equal(h.element('#fact-code').textContent,'DB101');
 });

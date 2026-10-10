@@ -45,7 +45,7 @@ export async function verifySchema(db, { baseOnly = false } = {}) {
   const { rows } = await db.query(`SELECT table_name FROM information_schema.tables
     WHERE table_schema = 'attendance' AND table_type = 'BASE TABLE' ORDER BY table_name`);
   const existing = new Set(rows.map(r => r.table_name));
-  const missing = [...expectedTables, ...(!baseOnly ? ['attendance_events','auth_sessions','face_datasets','face_dataset_subjects','face_dataset_images','team_face_references'] : [])].filter(t => !existing.has(t));
+    const missing = [...expectedTables, ...(!baseOnly ? ['attendance_events','auth_sessions','face_datasets','face_dataset_subjects','face_dataset_images','team_face_references','admin_settings'] : [])].filter(t => !existing.has(t));
   if (missing.length) throw new Error(`Missing tables: ${missing.join(', ')}`);
   const tracking = await db.query("SELECT to_regclass('public.presence_schema_migrations') AS tracking");
   if (!tracking.rows[0].tracking) throw new Error('Missing migration tracking table');

@@ -27,6 +27,10 @@ export async function localDatabase() {
   await db.query(await readFile(new URL('../db/migrations/005_future_absence_reporting.sql',import.meta.url),'utf8'));
   await db.query(await readFile(new URL('../db/migrations/007_team_face_references.sql',import.meta.url),'utf8'));
   await db.query(await readFile(new URL('../db/migrations/008_session_successors.sql',import.meta.url),'utf8'));
+  await db.query(await readFile(new URL('../db/migrations/009_admin_management.sql',import.meta.url),'utf8'));
+  await db.query(await readFile(new URL('../db/migrations/010_demo_alerts.sql',import.meta.url),'utf8'));
+  await db.query(await readFile(new URL('../db/migrations/011_demo_passengers.sql',import.meta.url),'utf8'));
+  await db.query(await readFile(new URL('../db/migrations/012_demo_olivia_passenger.sql',import.meta.url),'utf8'));
   // SQL implementation used solely to exercise HTTP query shape locally. The
   // opt-in integration suite verifies native Timescale timezone bucket behavior.
   await db.query(`CREATE FUNCTION public.time_bucket(width interval,stamp timestamptz) RETURNS timestamptz

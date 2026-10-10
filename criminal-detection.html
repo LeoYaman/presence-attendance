@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="description" content="Explore Presence use cases and sign in to attendance.">
+  <meta name="description" content="Recognize enrolled passengers from a live camera. Criminal status requires verified records.">
   <meta name="theme-color" content="#000000">
   <title>Criminal Detection · Presence</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -23,8 +23,8 @@
 <section class="camera-col" aria-label="Camera workspace">
 <figure class="camera"><video id="workspace-video" autoplay muted playsinline aria-label="Camera preview"></video><div class="camera__bar"><span id="camera-state-text">Camera off</span></div><figcaption class="workspace-camera-caption">Live preview</figcaption></figure>
 <div class="workspace-camera-actions"><button type="button" class="button" id="start-camera">Start camera</button><button type="button" class="button button--secondary" id="stop-camera" disabled>Stop camera</button></div>
-<section class="match"><div><h2 class="match__name">Case review</h2><p class="match__note">Camera preview does not identify criminals or determine criminal status. No recognition or records service is connected.</p></div></section>
+<section class="match"><div><h2 class="match__name">Passenger recognition</h2><p class="match__note" id="passenger-reference-status">Loading enrolled passenger references. Passenger recognition does not determine criminal status.</p></div></section>
 </section>
-<section class="roster usecase-roster" aria-labelledby="roster-title"><div class="roster__head"><h2 class="roster__title" id="roster-title">Review Queue</h2></div><div class="roster__tools"><label class="sr-only" for="workspace-search">Search records</label><input class="field" type="search" id="workspace-search" placeholder="Search records"></div><ul class="students" id="workspace-records"><li class="usecase-empty"><h3>No cases to review</h3><p>Connect an authorized records source to populate this workspace.</p></li></ul><p class="workspace-feedback" id="workspace-status" role="status">No connected records.</p></section>
-</div></main><script src="usecase-workspace.js" defer></script>
+<section class="roster usecase-roster" aria-labelledby="roster-title"><div class="roster__head"><h2 class="roster__title" id="roster-title">Detected passengers</h2></div><div class="roster__tools"><label class="sr-only" for="workspace-search">Search passengers</label><input class="field" type="search" id="workspace-search" placeholder="Search passengers"></div><ul class="students" id="workspace-records" aria-live="polite" aria-relevant="additions text"><li class="usecase-empty"><h3>No current passenger matches</h3><p>Sign in and start the camera to recognize enrolled passengers.</p></li></ul><p class="workspace-feedback" id="workspace-status" role="status">Checking passenger recognition…</p></section>
+</div></main><script src="usecase-workspace.js" defer></script><script src="passenger-camera.js" defer></script>
 </body></html>
