@@ -1,82 +1,60 @@
-# Presence — frontend ↔ recognition backend
+# Presence frontend and recognition integration
 
-The frontend does **not** recognize faces. It shows the camera preview, draws
-whatever the backend reports, checks students in, and lets the teacher fix or
-approve the list. Everything goes through `window.Presence`.
+Serve the root UI from the attendance backend (`/`). The dashboard opens directly without a login form. The frontend restores an existing HTTP-only session cookie through `/api/me`; an external authentication integration can establish that cookie through `/api/login`. When the session or backend is unavailable, the dashboard shows connection status and recording controls remain disabled. There is no client-side role selector. Login and `/me` return the server's user identity and CSRF token. Mutations send that token in `X-CSRF-Token`; they never send a claimed actor or role.
 
-## 1. Send recognition results
+## Saved attendance workflow
 
-Call once per processed frame, with one entry per face:
+Teachers choose an assigned course section, create a session, and open it. The roster is loaded from the API. A teacher check-in posts `{personId, source:'teacher'}` to `/api/sessions/:id/checkins`. Status, check-in time, counts and trends are taken from the saved dashboard. Attendance does not change locally before database acknowledgment. Duplicate in-flight check-ins share one request; the database supplies retry idempotency.
+
+Approve attendance posts to `/api/sessions/:id/close`. The server marks students not seen as absent and closes the session. Corrections use `/api/records/:id/correction` with `{status, reason, checkedInAt}`. A reason is required. Present and late corrections ask the teacher to supply the actual original check-in time as an ISO timestamp with an offset; closed sessions require a time during their open period. Absent corrections have `checkedInAt:null`. Cancellation and failures retain the saved record; there is no local-only undo.
+
+Dashboard refreshes every five seconds while a teacher has a visible selected session. This bounded prototype polling avoids a separate streaming service. Context and dashboard generations discard old responses after section/session switches, sign-out or acknowledged mutations. Failed refreshes show a stale-data message. Counts, five-minute arrival buckets and finalized daily trends come from server queries. Session and bucket times display in the course's IANA time zone. Session creation inputs explicitly use the browser's time zone and are sent as UTC ISO timestamps.
+
+Students receive only `/api/history`, with their saved session history and term absence allowances. API authorization determines what each account can access.
+
+## Recognition adapter boundary
+
+The browser sends camera JPEG frames to authenticated `/api/groups/:groupId/faces/detect`, `/enroll` and `/clear` endpoints. They run this repository's MediaPipe/OpenCV worker. `camera-client.js` marks every match as `suggestion:true`, which never automatically writes attendance. Teachers review and confirm using the existing teacher check-in workflow. A trusted automatic recognition adapter is still absent; arbitrary browser camera claims remain rejected. See the root README for Python setup and registration.
+
+The existing `window.Presence` boundary remains available:
 
 ```js
 window.Presence.recognize([
-  {
-    studentId: "s05",          // roster id, or null if nobody matched
-    confidence: 0.91,          // 0–1
-    box: { x: 0.38, y: 0.20, width: 0.24, height: 0.42 } // optional, normalized 0–1 of the camera frame
-  }
+  { studentId: 'server-person-uuid', confidence: 0.91,
+    box: { x: 0.38, y: 0.20, width: 0.24, height: 0.42 } }
 ]);
+// Confidence and boxes are display suggestions; the server must authorize writes.
+const video = window.Presence.getVideo();
+const savedRoster = window.Presence.getRoster();
+await window.Presence.refresh();
+await window.Presence.checkIn('server-person-uuid', 'teacher');
 ```
 
-Send `[]` when no face is in frame. Boxes use the **un-mirrored** camera frame;
-the UI handles the mirror and cropping.
+Boxes use normalized 0–1 coordinates of the unmirrored frame; the UI handles mirroring. Invalid confidence/box values are ignored. High suggestions may submit a camera request once per preview session; the backend rejects untrusted claims. Medium/low suggestions can be confirmed as a teacher check-in after the teacher identifies the student. `setRoster()` now reloads the authoritative API roster; supplied local rows cannot overwrite attendance.
 
-What the UI does with each result:
-
-| Confidence | Level | UI behavior |
-|---|---|---|
-| ≥ 0.85 | High | Checks the student in automatically (Present, or Late after 10 min) |
-| 0.60–0.85 | Uncertain | Suggests the student; teacher confirms or picks someone else |
-| < 0.60 | Low | Shows "Unknown student"; teacher picks from the list |
-
-Thresholds are placeholders: change them in `THRESHOLDS` in `app.js`
-(also readable as `window.Presence.thresholds`).
-
-## 2. Get camera frames
-
-The UI owns the camera. When it starts, it fires:
+The existing events remain acknowledgment notifications:
 
 ```js
-document.addEventListener("presence:camera-start", e => {
-  const video = e.detail.video;   // same as window.Presence.getVideo()
-  // grab frames from `video` (canvas.drawImage / ImageCapture) and send them to the model
+document.addEventListener('presence:camera-start', e => {
+  // e.detail.video is the preview element. Attach a trusted adapter here.
 });
-document.addEventListener("presence:camera-stop", () => { /* stop sending */ });
-```
-
-If the backend would rather own the camera (e.g. a classroom camera on a
-server), skip this and just call `recognize()` — the overlay still works,
-but the preview area will be empty. Tell the frontend and we can swap the
-`<video>` for an image/stream URL.
-
-## 3. Load the real roster
-
-```js
-window.Presence.setRoster([
-  { id: "s01", number: "001", name: "Alex Morgan" },
-  // ...
-]);
-```
-
-`studentId` values in `recognize()` must match these `id`s.
-
-## 4. Receive results
-
-```js
-// every check-in (camera or teacher)
-document.addEventListener("presence:checkin", e => {
-  // e.detail = { studentId, status: "present"|"late", source: "camera"|"teacher", time }
+document.addEventListener('presence:camera-stop', () => {});
+document.addEventListener('presence:checkin', e => {
+  // After successful saved acknowledgment and refresh:
+  // {studentId, sessionId, recordId, status, source:'teacher'|'camera', time}
 });
-
-// teacher pressed "Approve the attendance"
-document.addEventListener("presence:approved", e => {
-  // e.detail = { approvedAt, sessionStart, students: [{ id, name, status, source, time }] }
+document.addEventListener('presence:approved', e => {
+  // After successful persisted close and refresh:
+  // {sessionId, approvedAt, sessionStart, students}
 });
 ```
 
-`window.Presence.getRoster()` returns the current state at any time.
+## Explicit synthetic demonstrations
 
-## Demo mode
+`Show synthetic demo` draws generated boxes and scores. It never writes attendance.
 
-"Run demo" feeds mock results through the same `recognize()` path
-(high → uncertain → low …), so it behaves exactly like the real backend.
+`Run synthetic database demo` is separate and visibly labeled synthetic. It requires an open session in the seeded `PRESENCE-DEMO-SYNTHETIC` section and `/me` capability `syntheticCamera:true`, enabled by `ALLOW_SYNTHETIC_CAMERA=true` on the backend. Generated matches go through the real camera check-in API and database before the roster/dashboard change. The server verifies the seeded demo enrollment and records its synthetic recognition provider. This is an end-to-end persistence demonstration, not real facial recognition. Disable the server flag outside explicit local demonstrations.
+
+## Frontend verification
+
+Run `node --check app.js` and `node --test tests/frontend.test.mjs`. The VM tests exercise rejected persistence, in-flight check-in deduplication, close acknowledgment, stale response isolation, correction timestamps and cancellation, visual versus persisted synthetic demos, and untrusted camera rejection. The parent task additionally exercises the browser against the database-backed server.

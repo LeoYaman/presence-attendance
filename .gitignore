@@ -6,3 +6,8 @@ face_data/students.json
 face_data/attendance/
 .env
 .env.*
+!.env.example
+node_modules/
+.pnpm-store/
+.local-db/
+*.log

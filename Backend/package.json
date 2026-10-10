@@ -1,0 +1,19 @@
+{
+  "name": "presence-database",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start:local": "node scripts/local-demo.mjs",
+    "start": "node scripts/start.mjs",
+    "seed:demo": "node scripts/seed-demo.mjs --synthetic",
+    "db:check": "node scripts/database.mjs check",
+    "db:migrate": "node scripts/database.mjs migrate",
+    "db:verify": "node scripts/database.mjs verify",
+    "test": "node --test tests/*.test.mjs",
+    "test:timescale": "node --test tests/timescale.test.mjs"
+  },
+  "dependencies": { "pg": "8.23.1" },
+  "devDependencies": { "@electric-sql/pglite": "0.5.8" }
+}

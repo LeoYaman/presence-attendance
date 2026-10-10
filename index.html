@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="description" content="Presence — class attendance with face recognition.">
+  <meta name="description" content="Presence — connected class attendance, teacher check-in, camera preview and student history.">
   <meta name="theme-color" content="#000000">
   <title>Presence · Attendance</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,14 +11,6 @@
   <!-- UCF web fonts: Oswald, Montserrat, Roboto Mono · Full Sail: Arvo (slab, close to Lubalin Graph), Roboto -->
   <link href="https://fonts.googleapis.com/css2?family=Arvo:wght@400;700&family=Montserrat:wght@400;500;600;700&family=Oswald:wght@500;600&family=Roboto+Mono:wght@400;500&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
-  <script>
-    try {
-      var u = localStorage.getItem('presence-university'), t = localStorage.getItem('presence-theme');
-      if (u) document.documentElement.dataset.university = u;
-      if (!t && matchMedia('(prefers-color-scheme: dark)').matches) t = 'dark';
-      if (t) document.documentElement.dataset.theme = t;
-    } catch (e) {}
-  </script>
 </head>
 <body>
   <a class="skip-link" href="#workspace">Skip to attendance</a>
@@ -55,19 +47,51 @@
   <!-- ───────── Local nav ───────── -->
   <div class="localnav" id="top">
     <div class="localnav__inner">
-      <p class="localnav__title"><span class="localnav__product">Presence</span> CS 101 Attendance</p>
+      <p class="localnav__title"><span class="localnav__product">Presence</span> <span id="local-course">Attendance</span></p>
       <p class="localnav__status" id="session-status"><span class="dot" aria-hidden="true"></span><span id="session-status-text">Session open</span></p>
     </div>
   </div>
 
   <main>
+    <section class="account-panel" id="connection-panel" aria-label="Backend connection">
+      <p id="connection-message" role="status">Connecting to the attendance backend…</p>
+      <button type="button" class="button button--secondary" id="reconnect-btn">Reconnect</button>
+    </section>
+    <section class="account-panel" id="account-panel" hidden>
+      <p id="account-name"></p><button type="button" class="button button--secondary" id="logout-btn">Sign out</button>
+    </section>
+    <section class="history-panel" id="history-panel" hidden aria-labelledby="history-title">
+      <div class="panel-heading"><h1 id="history-title">Your attendance</h1><button type="button" class="button button--secondary" id="history-refresh">Refresh history</button></div>
+      <p>Your history and allowance come from saved attendance records.</p>
+      <div id="history-summary" class="history-cards"></div>
+      <div class="table-scroll"><table class="data-table"><caption>Attendance history</caption><thead><tr><th scope="col">Course section</th><th scope="col">Session · course time zone</th><th scope="col">Status</th><th scope="col">Check-in</th></tr></thead><tbody id="history-rows"></tbody></table></div>
+    </section>
+    <div id="teacher-content">
+    <section class="session-controls" aria-label="Course and session controls">
+      <div class="session-selectors">
+        <label>Course section<select id="group-select" class="field"><option value="">Choose a course section</option></select></label>
+        <label>Session<select id="session-select" class="field"><option value="">Choose a session</option></select></label>
+        <button type="button" class="button" id="open-session-btn" disabled>Open session</button>
+        <button type="button" class="button button--secondary" id="refresh-btn" disabled>Refresh</button>
+      </div>
+      <p class="integration-note">Course time zone: <strong id="course-zone">—</strong> · <span id="sync-status" role="status">Choose a section.</span></p>
+      <details class="create-session"><summary>Create a session</summary>
+        <form id="create-session-form" class="session-selectors">
+          <label>Starts<input id="new-start" class="field" type="datetime-local" required></label>
+          <label>Ends<input id="new-end" class="field" type="datetime-local" required></label>
+          <label>Late after (minutes)<input id="new-late" class="field" type="number" min="0" max="120" value="10" required></label>
+          <button class="button" id="create-session-btn" type="submit" disabled>Save session</button>
+        </form>
+        <p class="integration-note">Enter times in your browser time zone (<span id="create-zone"></span>). Saved sessions and attendance display in the course time zone.</p>
+      </details>
+    </section>
     <!-- ───────── Summary ───────── -->
     <section class="summary-band">
     <div class="summary">
       <div class="summary__text">
-        <p class="kicker">Introduction to Computer Science · Section A</p>
+        <p class="kicker" id="course-label">Choose a course section</p>
         <h1 class="headline"><span id="in-room">0</span> of <span id="roster-total">0</span> students are in class.</h1>
-        <p class="sub">Dr. Emily Carter · <span data-uni-text="campus">Orlando</span> · Started <span class="mono" id="session-start">—</span> · Late after 10 minutes</p>
+        <p class="sub"><span data-uni-text="campus">Orlando</span> · Started <span class="mono" id="session-start">—</span> · Late after <span id="late-minutes">—</span> minutes</p>
       </div>
       <div class="summary__figures">
         <div class="bar" aria-hidden="true">
@@ -101,15 +125,27 @@
 
           <div class="camera__empty" id="camera-empty">
             <h2>Start the camera when class begins.</h2>
-            <p>Students who are recognized are checked in on the roster. You can tick anyone off by hand at any time.</p>
+            <p>Start the camera. Saved reference faces above 0.55 similarity save attendance automatically.</p>
             <div class="ctas">
               <button type="button" class="button" id="start-camera">Start camera</button>
-              <button type="button" class="link link--on-dark" id="start-demo">Run a demo</button>
+              <button type="button" class="link link--on-dark" id="start-demo">Show synthetic demo</button>
+              <button type="button" class="link link--on-dark" id="start-persisted-demo">Run synthetic database demo</button>
             </div>
           </div>
 
           <button type="button" class="link link--on-dark camera__stop" id="stop-camera" hidden>Stop camera</button>
         </figure>
+        <div class="camera-devices" aria-label="Camera selection">
+          <div class="camera-devices__row">
+            <label for="camera-device">Camera</label>
+            <select id="camera-device" class="field" aria-describedby="camera-device-status">
+              <option value="">Default camera</option>
+            </select>
+            <button type="button" class="button button--secondary" id="camera-devices-refresh">Refresh cameras</button>
+          </div>
+          <p class="integration-note" id="camera-device-status" role="status">Choose which camera to use for face matching.</p>
+        </div>
+        <p class="integration-note camera-warning" id="camera-warning" role="status"></p>
 
         <!-- Recognition result -->
         <section class="match" id="recognition" aria-labelledby="match-label" aria-live="polite">
@@ -122,14 +158,24 @@
             <p class="match__pct mono" id="confidence-value">—</p>
             <p class="match__level" id="match-level"></p>
           </div>
-          <div class="match__form">
+          <div class="match__form" id="checkin-form">
             <label class="sr-only" for="checkin-student">Student</label>
             <select id="checkin-student" class="field" disabled>
               <option value="">Select a student</option>
             </select>
-            <button type="button" class="button" id="checkin-confirm" disabled>Check in</button>
+            <button type="button" class="button" id="checkin-confirm" disabled>Confirm attendance</button>
           </div>
-          <p class="match__rules">Above 85% checks in automatically. 60–85% asks you to confirm. Below 60% asks you to choose.</p>
+          <p class="match__rules">Saved SFace matches above 0.55 similarity save attendance once per session. Unknown faces stay unsaved. Stop the camera to use manual check-in.</p>
+          <div class="face-enrollment">
+            <label for="enroll-student">Register face for this course</label>
+            <select id="enroll-student" class="field"><option value="">Select a student</option></select>
+            <label class="face-consent"><input type="checkbox" id="face-consent"> The student agrees to temporary face registration.</label>
+            <div class="face-actions">
+              <button type="button" class="button button--secondary" id="enroll-face" disabled>Capture 5 face samples</button>
+              <button type="button" class="link" id="clear-faces" disabled>Clear temporary face samples</button>
+            </div>
+            <p class="match__note" id="face-service-status" role="status">Face samples stay in server memory until cleared or the server restarts. Look at the camera with only one face visible.</p>
+          </div>
         </section>
       </section>
 
@@ -137,7 +183,7 @@
       <section class="roster" id="roster" aria-labelledby="roster-title">
         <div class="roster__head">
           <h2 id="roster-title" class="roster__title">Roster</h2>
-          <p class="roster__hint">Tick students off as they walk in.</p>
+          <p class="roster__hint">Tick students as they arrive. Status corrections require a reason.</p>
         </div>
 
         <div class="roster__tools">
@@ -164,23 +210,25 @@
         </div>
       </section>
     </div>
+    <section class="dashboard-panels" aria-label="Saved attendance trends">
+      <article class="dashboard-panel"><h2>Arrivals in five-minute intervals</h2><p class="integration-note">Saved check-ins · <span id="dashboard-zone">—</span></p><div id="arrivals-chart"></div></article>
+      <article class="dashboard-panel"><h2>Daily attendance for this section</h2><p class="integration-note">Finalized sessions only · dates use the course time zone.</p><div class="table-scroll"><table class="data-table"><caption class="sr-only">Daily attendance totals in course time zone</caption><thead><tr><th scope="col">Day</th><th scope="col">Present</th><th scope="col">Late</th><th scope="col">Absent</th><th scope="col">Not seen</th><th scope="col">Total</th></tr></thead><tbody id="daily-trends"></tbody></table></div></article>
+    </section>
+    </div>
   </main>
 
   <footer class="footer">
     <div class="footer__inner">
-      <p>Presence is a prototype for the Full Sail University “Pathways &amp; Perception” challenge. Student names and attendance are sample data.</p>
+      <p>Presence is a prototype for the Full Sail University “Pathways &amp; Perception” challenge. Connected attendance comes from saved database records. The camera demo is synthetic.</p>
     </div>
   </footer>
 
   <!-- Approve confirmation -->
   <dialog class="dialog" id="approve-dialog" aria-labelledby="dialog-title">
     <form method="dialog">
-      <h2 id="dialog-title">Approve attendance?</h2>
+      <h2 id="dialog-title">Approve and start a fresh session?</h2>
       <p class="dialog__text" id="dialog-text"></p>
-      <label class="check" id="pending-row">
-        <input type="checkbox" id="mark-pending-absent" checked>
-        <span>Count students not seen yet as absent</span>
-      </label>
+      <p class="dialog__text">Students not seen are saved as absent in this session. A new one-hour session opens with a fresh attendance list, and the camera keeps running.</p>
       <div class="dialog__actions">
         <button type="submit" value="cancel" class="button button--secondary">Cancel</button>
         <button type="submit" value="approve" class="button">Approve attendance</button>
@@ -194,5 +242,6 @@
   </div>
 
   <script src="app.js" type="module"></script>
+  <script src="camera-client.js" type="module"></script>
 </body>
 </html>
