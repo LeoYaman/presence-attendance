@@ -1,4 +1,4 @@
-# Presence
+﻿# Presence
 
 Open these two pages from this folder (keep the folder structure as is):
 
@@ -30,5 +30,5 @@ The camera only works when the page is served over http://localhost or https
 
 See [face_data/README.md](face_data/README.md) to run local webcam recognition.
 This is a separate Python prototype; it is not connected to the web portal and
-does not record attendance yet. Each teammate supplies their own local reference
-photos and students.json, then downloads the models using the documented command.
+does not record attendance yet. The shared demo includes reference photos and students.json; each teammate
+downloads the models using the documented command.

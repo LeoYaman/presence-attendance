@@ -1,7 +1,7 @@
-# Webcam face detection and team recognition
+﻿# Webcam face detection and team recognition
 
 Windows prototype tested with Python 3.14. Camera images and attendance are not
-recorded. Photos and students.json stay local and are excluded from Git.
+recorded. The shared demo includes reference photos and students.json. Python environments and downloaded models are excluded from Git.
 
 ## Setup
 
@@ -14,7 +14,7 @@ python -m venv face_data/.venv
 
 ## Recognition
 
-Put one consenting teammate's reference photo per person in face_data/people_faces/.
+The four teammates are already configured in the included students.json. To add another consenting person, put their reference photo in face_data/people_faces/.
 JPG, PNG and PGM are supported. Create face_data/students.json like this:
 
 ~~~json
