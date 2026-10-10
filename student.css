@@ -829,3 +829,4 @@ a { color: inherit; text-decoration: none; }
   .customizer { width: 100%; border-left: 0; }
   .customizer__form { flex-direction: column; }
 }
+.table-wrap { position: relative; }
