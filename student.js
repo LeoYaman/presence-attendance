@@ -132,13 +132,6 @@ function renderCourse(courseKey, announce = true) {
   $("#remaining-word").textContent = remaining === 1 ? "absence" : "absences";
   $("#headline-course").textContent = course.name;
   $("#headline").classList.toggle("is-low", low);
-  $("#headline-sub").textContent =
-    `${used} of ${course.allowed} allowed absences used · ${weeks} ${weeks === 1 ? "week" : "weeks"} until the course ends on ${endText}.`;
-  $("#n-present").textContent = counts.Present;
-  $("#n-late").textContent = counts.Late;
-  $("#n-absent").textContent = counts.Absent;
-  $("#n-pending").textContent = counts.Pending;
-
   // History table
   $("#session-count").textContent = `${course.records.length} sessions`;
   $("#history-caption").textContent = `${studentName}'s attendance history for ${course.name}, ${course.code}`;
@@ -173,7 +166,8 @@ function renderCourse(courseKey, announce = true) {
   bar.setAttribute("aria-label", `Absence allowance: ${used} used, ${remaining} remaining, ${course.allowed} allowed`);
   bar.replaceChildren(...Array.from({ length: course.allowed }, (_, i) => {
     const seg = document.createElement("span");
-    seg.className = `seg ${i < used ? "seg--used" : "seg--left"}`;
+    seg.className = `seg ${i < remaining ? "seg--left" : "seg--used"}`;
+    seg.style.gridColumn = String(i + 1);
     return seg;
   }));
   $("#allowance-help").textContent =
@@ -195,3 +189,25 @@ const courseSelect = $("#course-select");
 courseSelect.addEventListener("change", () => renderCourse(courseSelect.value));
 renderCourse(courseSelect.value, false);
 $(".course-picker").hidden = false;
+
+// Notification settings dropdown.
+const notificationBell = $("#notification-bell");
+const notificationDropdown = $("#notification-dropdown");
+function closeNotifications() {
+  notificationDropdown.hidden = true;
+  notificationBell.setAttribute("aria-expanded", "false");
+}
+notificationBell.addEventListener("click", () => {
+  const open = notificationDropdown.hidden;
+  notificationDropdown.hidden = !open;
+  notificationBell.setAttribute("aria-expanded", String(open));
+});
+document.addEventListener("click", event => {
+  if (!event.target.closest(".notification-control")) closeNotifications();
+});
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape" && !notificationDropdown.hidden) {
+    closeNotifications();
+    notificationBell.focus();
+  }
+});

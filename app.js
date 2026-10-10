@@ -312,7 +312,7 @@ function showMatch(r) {
 
   if (!r) {
     $('#match-name').textContent = 'No one yet';
-    $('#confidence-value').textContent = '—';
+    $('#confidence-value').textContent = '';
     lvlEl.textContent = '';
     lvlEl.className = 'match__level';
     sel.value = '';

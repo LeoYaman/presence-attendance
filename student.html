@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Arvo:wght@400;700&family=Montserrat:wght@400;500;600;700&family=Oswald:wght@500;600&family=Roboto+Mono:wght@400;500&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="student.css">
+  <link rel="stylesheet" href="student.css?v=warning-modes-1">
   <!-- Apply university, appearance and the student's saved design before first paint -->
   <script>
     try {
@@ -19,11 +19,12 @@
       if (!t && matchMedia('(prefers-color-scheme: dark)').matches) t = 'dark';
       if (t) d.dataset.theme = t;
       var s = JSON.parse(localStorage.getItem('presence.student.savedDesign') || 'null');
-      if (s && s.version === 2 && s.skin) d.dataset.skin = s.skin;
+      if (s && (s.version === 2 || s.version === 3) && ['ocean', 'lavender', 'sage', 'rose', 'peach', 'sunshine', 'ruby', 'tangerine', 'gold', 'emerald', 'cobalt', 'violet'].includes(s.skin)) d.dataset.skin = s.skin;
+      if (s && s.version === 3 && ['rounded', 'soft', 'square'].includes(s.bubbles)) d.dataset.bubbles = s.bubbles;
     } catch (e) {}
   </script>
-  <script src="student.js" defer></script>
-  <script src="customize.js" defer></script>
+  <script src="student.js?v=summary-simple-1" defer></script>
+  <script src="customize.js?v=close-on-save" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#history">Skip to attendance history</a>
@@ -59,8 +60,24 @@
   <!-- ───────── Local nav ───────── -->
   <div class="localnav" id="top">
     <div class="localnav__inner">
-      <p class="localnav__title"><span class="localnav__product">Presence</span> My Attendance</p>
-      <button type="button" class="localnav__action" id="open-customizer">Customize with AI</button>
+      <p class="localnav__title">My Attendance</p>
+      <div class="localnav__tools">
+        <button type="button" class="localnav__action" id="open-customizer">Customize</button>
+        <div class="notification-control">
+          <button type="button" class="notification-bell" id="notification-bell" aria-label="Notifications" aria-expanded="false" aria-controls="notification-dropdown">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
+          </button>
+          <div class="notification-dropdown" id="notification-dropdown" hidden>
+            <label class="toggle">
+              <span class="toggle__text">
+                <span class="toggle__label">Notify Me</span>
+                <span class="toggle__help" id="email-help">Send me emails about my attendance in class.</span>
+              </span>
+              <input type="checkbox" id="email-notifications" class="switch-input" role="switch" aria-describedby="email-help">
+            </label>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -68,13 +85,8 @@
     <!-- ───────── Statement band ───────── -->
     <section class="summary-band" aria-labelledby="headline">
       <div class="summary summary--student">
-        <div class="summary__text">
-          <p class="kicker">Alex Morgan · Student ID <span class="mono">001</span></p>
-          <h1 class="headline" id="headline"><span id="remaining-count">7</span> <span id="remaining-word">absences</span> left in <span id="headline-course">Introduction to Computer Science</span>.</h1>
-          <p class="sub" id="headline-sub">3 of 10 allowed absences used · 9 weeks until the course ends on Dec 11, 2026.</p>
-        </div>
-
         <div class="summary__side">
+          <p class="kicker">Alex Morgan · Student ID <span class="mono">001</span></p>
           <div class="course-picker" hidden>
             <label for="course-select">Class</label>
             <select id="course-select" class="field field--band" aria-describedby="course-feedback">
@@ -84,13 +96,18 @@
             </select>
             <p id="course-feedback" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
           </div>
-          <dl class="figures">
-            <div class="fig fig--present"><dd id="n-present">0</dd><dt>present</dt></div>
-            <div class="fig fig--late"><dd id="n-late">0</dd><dt>late</dt></div>
-            <div class="fig fig--absent"><dd id="n-absent">0</dd><dt>absent</dt></div>
-            <div class="fig fig--pending"><dd id="n-pending">0</dd><dt>pending</dt></div>
-          </dl>
         </div>
+
+        <div class="summary__text attendance-warning">
+          <div class="attendance-warning__titlebar"><span>Attendance Warning</span><span aria-hidden="true">!</span></div>
+          <div class="attendance-warning__body">
+            <svg class="attendance-warning__icon" viewBox="0 0 32 32" width="36" height="36" aria-hidden="true"><path d="M16 3 30 28H2Z" fill="#f5ca58" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M16 11v8" stroke="#302510" stroke-width="3"/><circle cx="16" cy="23" r="1.6" fill="#302510"/></svg>
+            <div class="attendance-warning__message">
+          <h1 class="headline" id="headline"><span id="remaining-count">7</span> <span id="remaining-word">absences</span> left in <span id="headline-course">Introduction to Computer Science</span>.</h1>
+            </div>
+          </div>
+        </div>
+
       </div>
     </section>
 
@@ -98,7 +115,7 @@
     <div class="student-grid">
       <section class="history" id="history" aria-labelledby="history-title">
         <div class="section-head">
-          <h2 id="history-title" class="section-title">Attendance history</h2>
+          <h2 id="history-title" class="section-title">Attendance History</h2>
           <p class="section-meta" id="session-count">8 sessions</p>
         </div>
         <noscript><p class="help">Turn on JavaScript to switch classes. Showing CS 101 sample attendance.</p></noscript>
@@ -127,7 +144,7 @@
       <aside class="side-panels" aria-label="Course details and settings">
         <!-- Absence allowance -->
         <section class="panel" aria-labelledby="allowance-title">
-          <h2 id="allowance-title" class="panel__title">Absence allowance</h2>
+          <h2 id="allowance-title" class="panel__title">Absence Allowance</h2>
           <p class="panel__lead" id="allowance-lead"><strong>7 left</strong> of 10 allowed.</p>
           <div class="allowance" id="allowance-bar" role="img" aria-label="Absence allowance: 3 used, 7 remaining, 10 allowed"></div>
           <div class="legend" aria-hidden="true"><span><i class="legend__used"></i>Used</span><span><i class="legend__left"></i>Left</span></div>
@@ -141,23 +158,11 @@
             <div><dt>Class</dt><dd id="fact-code">CS 101</dd></div>
             <div><dt>Ends</dt><dd id="fact-end"><time datetime="2026-12-11">Dec 11, 2026</time></dd></div>
             <div><dt>Weeks left</dt><dd id="fact-weeks">9</dd></div>
-            <div><dt>Sessions so far</dt><dd id="fact-sessions">8</dd></div>
+            <div><dt>Lessons so far</dt><dd id="fact-sessions">8</dd></div>
           </dl>
           <p class="help">Sample schedule. Weeks left are counted from <time datetime="2026-10-09">Oct 9, 2026</time>.</p>
         </section>
 
-        <!-- Notifications -->
-        <section class="panel" aria-labelledby="notify-title">
-          <h2 id="notify-title" class="panel__title">Notifications</h2>
-          <label class="toggle">
-            <span class="toggle__text">
-              <span class="toggle__label">Email me about my attendance</span>
-              <span class="toggle__help" id="email-help">Get an email when your attendance is updated.</span>
-            </span>
-            <input type="checkbox" id="email-notifications" class="switch-input" aria-describedby="email-help email-prototype">
-          </label>
-          <p class="help" id="email-prototype">Prototype only. This setting isn’t saved and no emails are sent.</p>
-        </section>
       </aside>
     </div>
   </main>
@@ -168,43 +173,48 @@
     </div>
   </footer>
 
-  <!-- ───────── Customize with AI ───────── -->
-  <dialog class="customizer" id="customizer" aria-labelledby="customizer-title" aria-describedby="customizer-description">
+  <dialog class="customizer" id="customizer" aria-labelledby="customizer-title">
     <div class="customizer__head">
-      <div>
-        <h2 id="customizer-title">Customize with AI</h2>
-        <p id="customizer-description" class="customizer__desc">Describe how you want this page to look. Preview as many designs as you like. Saving keeps one design and replaces the last one.</p>
-      </div>
-      <button type="button" class="customizer__close" id="close-customizer" aria-label="Close">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
-      </button>
+      <h2 id="customizer-title">Customize</h2>
+      <button type="button" class="customizer__close" id="close-customizer" aria-label="Close customization">×</button>
     </div>
-
-    <p class="customizer__demo">Demo: this matches your request to a set of preset designs. No AI service is connected yet.</p>
-
-    <div class="customizer__log" id="theme-messages" role="log" aria-label="Design conversation" aria-live="polite" aria-relevant="additions">
-      <p class="msg msg--assistant">Make this page yours. Try “Minecraft with green blocks,” “neon cyberpunk,” “ocean blue,” or “soft lavender.” Your school’s logo and colors stay in the top bar.</p>
+    <div class="customizer__options">
+      <fieldset class="color-options">
+        <legend>Color Theme</legend>
+        <div class="color-options__grid">
+        <div class="color-row color-row--light">
+        <label class="design-choice"><input type="radio" name="color-theme" value="rose" aria-label="Strawberry"><span class="color-swatch" style="--swatch:#e88b9c"></span></label>
+        <label class="design-choice"><input type="radio" name="color-theme" value="peach" aria-label="Peach"><span class="color-swatch" style="--swatch:#f3b38b"></span></label>
+        <label class="design-choice"><input type="radio" name="color-theme" value="sunshine" aria-label="Buttercup"><span class="color-swatch" style="--swatch:#edcf75"></span></label>
+        <label class="design-choice"><input type="radio" name="color-theme" value="sage" aria-label="Mint"><span class="color-swatch" style="--swatch:#93cbb0"></span></label>
+        <label class="design-choice"><input type="radio" name="color-theme" value="ocean" aria-label="Sky blue"><span class="color-swatch" style="--swatch:#95c9e8"></span></label>
+        <label class="design-choice"><input type="radio" name="color-theme" value="lavender" aria-label="Lilac"><span class="color-swatch" style="--swatch:#bda4e3"></span></label>
+        </div>
+        <div class="color-row color-row--dark">
+        <label class="design-choice"><input type="radio" name="color-theme" value="ruby" aria-label="Ruby"><span class="color-swatch" style="--swatch:#bd3150"></span></label>
+        <label class="design-choice"><input type="radio" name="color-theme" value="tangerine" aria-label="Tangerine"><span class="color-swatch" style="--swatch:#c35b1b"></span></label>
+        <label class="design-choice"><input type="radio" name="color-theme" value="gold" aria-label="Golden"><span class="color-swatch" style="--swatch:#a77c08"></span></label>
+        <label class="design-choice"><input type="radio" name="color-theme" value="emerald" aria-label="Emerald"><span class="color-swatch" style="--swatch:#228456"></span></label>
+        <label class="design-choice"><input type="radio" name="color-theme" value="cobalt" aria-label="Cobalt"><span class="color-swatch" style="--swatch:#2668bd"></span></label>
+        <label class="design-choice"><input type="radio" name="color-theme" value="violet" aria-label="Violet"><span class="color-swatch" style="--swatch:#803cbd"></span></label>
+        </div>
+        </div>
+      </fieldset>
+      <fieldset class="bubble-options">
+        <legend>Bubble Style</legend>
+        <div class="bubble-options__grid">
+        <label class="design-choice"><input type="radio" name="bubble-style" value="rounded" aria-label="Rounded"><span class="bubble-sample" style="border-radius:18px"></span></label>
+        <label class="design-choice"><input type="radio" name="bubble-style" value="soft" aria-label="Soft corners"><span class="bubble-sample" style="border-radius:6px"></span></label>
+        <label class="design-choice"><input type="radio" name="bubble-style" value="square" aria-label="Square"><span class="bubble-sample" style="border-radius:0"></span></label>
+        </div>
+      </fieldset>
     </div>
-
-    <div class="customizer__ideas" aria-label="Ideas">
-      <button type="button" data-prompt="Minecraft with green blocks">Minecraft</button>
-      <button type="button" data-prompt="Neon cyberpunk">Cyberpunk</button>
-      <button type="button" data-prompt="Calm ocean blue">Ocean</button>
-      <button type="button" data-prompt="Soft lavender">Lavender</button>
-    </div>
-
-    <form id="theme-form" class="customizer__form">
-      <label for="theme-prompt" class="sr-only">Describe your design</label>
-      <input id="theme-prompt" class="field" name="prompt" type="text" maxlength="400" placeholder="Describe your design" required autocomplete="off">
-      <button type="submit" class="button">Preview</button>
-    </form>
-
     <div class="customizer__foot">
-      <p id="theme-state" role="status">One saved design · Change it anytime</p>
-      <p class="customizer__note">Saved in this browser only.</p>
+      <p id="theme-state" role="status">Choose your colors and bubble style.</p>
+      <p class="customizer__note">Saved in this browser.</p>
       <div class="customizer__actions">
-        <button type="button" id="reset-theme" class="button button--secondary">Use school design</button>
-        <button type="button" id="save-theme" class="button" disabled>Save design</button>
+        <button type="button" id="reset-theme" class="button button--secondary">Reset to theme</button>
+        <button type="button" id="save-theme" class="button">Save changes</button>
       </div>
     </div>
   </dialog>

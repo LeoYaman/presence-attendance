@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <!-- UCF web fonts: Oswald, Montserrat, Roboto Mono · Full Sail: Arvo (slab, close to Lubalin Graph), Roboto -->
   <link href="https://fonts.googleapis.com/css2?family=Arvo:wght@400;700&family=Montserrat:wght@400;500;600;700&family=Oswald:wght@500;600&family=Roboto+Mono:wght@400;500&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=certainty-window-1">
   <script>
     try {
       var u = localStorage.getItem('presence-university'), t = localStorage.getItem('presence-theme');
@@ -55,7 +55,7 @@
   <!-- ───────── Local nav ───────── -->
   <div class="localnav" id="top">
     <div class="localnav__inner">
-      <p class="localnav__title"><span class="localnav__product">Presence</span> CS 101 Attendance</p>
+      <p class="localnav__title">CS 101 Attendance</p>
       <p class="localnav__status" id="session-status"><span class="dot" aria-hidden="true"></span><span id="session-status-text">Session open</span></p>
     </div>
   </div>
@@ -112,14 +112,13 @@
         </figure>
 
         <!-- Recognition result -->
-        <section class="match" id="recognition" aria-labelledby="match-label" aria-live="polite">
+        <section class="match" id="recognition" aria-label="Identification result" aria-live="polite">
           <div class="match__who">
-            <p class="label" id="match-label">Recognized</p>
             <p class="match__name" id="match-name">No one yet</p>
             <p class="match__note" id="recognition-sub">Waiting for the recognition service.</p>
           </div>
           <div class="match__score">
-            <p class="match__pct mono" id="confidence-value">—</p>
+            <p class="match__pct mono" id="confidence-value"></p>
             <p class="match__level" id="match-level"></p>
           </div>
           <div class="match__form">
@@ -129,8 +128,11 @@
             </select>
             <button type="button" class="button" id="checkin-confirm" disabled>Check in</button>
           </div>
-          <p class="match__rules">Above 85% checks in automatically. 60–85% asks you to confirm. Below 60% asks you to choose.</p>
         </section>
+          <section class="match__rules certainty-notice" aria-labelledby="certainty-title">
+            <h2 class="match__rules-title" id="certainty-title">Certainty of AI Identification</h2>
+            <p>Above 85% checks in automatically, 60–85% asks you to confirm, below 60% asks you to choose a student to be connected to the face for future check in.</p>
+          </section>
       </section>
 
       <!-- Roster column -->
@@ -193,6 +195,6 @@
     <button type="button" class="link" id="toast-undo" hidden>Undo</button>
   </div>
 
-  <script src="app.js" type="module"></script>
+  <script src="app.js?v=identification-heading-1" type="module"></script>
 </body>
 </html>
