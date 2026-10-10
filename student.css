@@ -1187,3 +1187,13 @@ html[data-skin="violet"] .fig { --c: #fff; }
 
 [data-theme="dark"] .summary--student .attendance-warning { background: #dedee3; }
 [data-theme="dark"] .attendance-warning .attendance-warning__titlebar { background: #c9c9d1; }
+
+.student-profile { display: flex; align-items: center; gap: 11px; flex-shrink: 0; margin-left: 12px; color: var(--localnav-text); }
+.student-profile__avatar { display: grid; place-items: center; width: 39px; height: 39px; border-radius: 50%; background: var(--surface-2); color: var(--action); font-size: 12px; font-weight: 700; }
+.student-profile__details strong { display: block; font-size: 12px; line-height: 1.4; }
+.student-profile__details > span { display: block; font-size: 11px; line-height: 1.4; opacity: .75; }
+@media (max-width: 600px) {
+ .student-profile { margin-left: 4px; }
+ .student-profile__details { display: none; }
+ .student-profile__avatar { width: 33px; height: 33px; }
+}
