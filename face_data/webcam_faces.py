@@ -1,4 +1,4 @@
-"""Local webcam face detection; no identity matching or image recording."""
+"""Local webcam face detection and optional team recognition; no image recording."""
 import argparse
 from pathlib import Path
 import sys
@@ -13,7 +13,24 @@ def main():
     parser.add_argument("--camera", type=int, default=0)
     parser.add_argument("--confidence", type=float, default=0.6)
     parser.add_argument("--download-model", action="store_true")
+    parser.add_argument("--recognize", action="store_true", help="Match enrolled team members")
+    parser.add_argument("--download-recognition-models", action="store_true")
+    parser.add_argument("--check-enrollment", action="store_true", help="Validate references without opening webcam")
+    parser.add_argument("--students", type=Path, default=Path(__file__).resolve().parent / "students.json")
+    parser.add_argument("--include-samples", action="store_true", help="Also enroll AT&T sample subjects")
+    parser.add_argument("--threshold", type=float, default=0.45, help="Minimum cosine similarity, not a probability")
+    parser.add_argument("--margin", type=float, default=0.06, help="Minimum gap between best and second match")
     args = parser.parse_args()
+    if not 0 <= args.threshold <= 1 or not 0 <= args.margin <= 2:
+        parser.error("Invalid recognition threshold or margin")
+    if args.download_recognition_models:
+        from recognition import download_models
+        download_models()
+        return
+    if args.recognize or args.check_enrollment:
+        from recognition import run
+        run(args)
+        return
     if not 0 <= args.confidence <= 1:
         parser.error("--confidence must be between 0 and 1")
     if args.download_model:
@@ -85,6 +102,6 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except (RuntimeError, OSError) as error:
+    except (RuntimeError, OSError, ValueError, KeyError, ImportError) as error:
         print(f"Error: {error}", file=sys.stderr)
         sys.exit(1)

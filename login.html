@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign In · Presence</title>
+  <link rel="stylesheet" href="AdminPage/admin.css?v=panel-shadows-1">
+  <link rel="stylesheet" href="login.css?v=center-text-2">
+</head>
+<body>
+  <main class="login-layout">
+    <div class="login-brand brand"><span class="brand-mark" aria-hidden="true">P</span><div>Presence<span class="brand-caption">ATTENDANCE WORKSPACE</span></div></div>
+    <section class="panel login-card" aria-labelledby="login-title">
+      <p class="eyebrow">WELCOME BACK</p>
+      <h1 id="login-title">Sign In</h1>
+      <p class="login-intro">Your classes, attendance, and campus—all in one place.</p>
+      <form id="login-form">
+        <div class="field"><label for="email">School Email</label><input id="email" name="email" type="email" placeholder="you@university.edu" autocomplete="username" required></div>
+        <div class="field"><label for="password">Password</label><div class="password-field"><input id="password" name="password" type="password" placeholder="Enter your password" autocomplete="current-password" required><button id="show-password" type="button" aria-label="Show password" aria-pressed="false">Show</button></div></div>
+        <div class="field"><label for="role">Workspace</label><select id="role" name="role"><option value="student">Student</option><option value="teacher">Teacher</option><option value="admin">Administrator</option></select></div>
+        <button class="primary login-submit" type="submit">Sign In</button>
+        <p id="login-status" class="help" role="status" hidden></p>
+      </form>
+      <div class="login-demo"><span>Explore the workspace</span><nav aria-label="Demo workspaces"><a href="student.html">Student</a><a href="index.html">Teacher</a><a href="AdminPage/overview.html">Admin</a></nav></div>
+    </section>
+    <p class="login-footer">Presence · Campus attendance made simple</p>
+  </main>
+  <script src="login.js" defer></script>
+</body>
+</html>
