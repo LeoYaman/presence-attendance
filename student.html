@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en" data-university="ucf" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="Presence — your attendance history and absence allowance.">
+  <meta name="theme-color" content="#000000">
+  <title>My Attendance · Presence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Arvo:wght@400;700&family=Montserrat:wght@400;500;600;700&family=Oswald:wght@500;600&family=Roboto+Mono:wght@400;500&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="student.css">
+  <!-- Apply university, appearance and the student's saved design before first paint -->
+  <script>
+    try {
+      var d = document.documentElement;
+      var u = localStorage.getItem('presence-university'), t = localStorage.getItem('presence-theme');
+      if (u) d.dataset.university = u;
+      if (!t && matchMedia('(prefers-color-scheme: dark)').matches) t = 'dark';
+      if (t) d.dataset.theme = t;
+      var s = JSON.parse(localStorage.getItem('presence.student.savedDesign') || 'null');
+      if (s && s.version === 2 && s.skin) d.dataset.skin = s.skin;
+    } catch (e) {}
+  </script>
+  <script src="student.js" defer></script>
+  <script src="customize.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#history">Skip to attendance history</a>
+
+  <!-- ───────── Global nav (same as the teacher view) ───────── -->
+  <header class="globalnav">
+    <div class="globalnav__inner">
+      <a class="logo" href="#top">
+        <span class="logo__slot logo__slot--ucf">
+          <img src="assets/ucf-logo.png" alt="UCF" width="53" height="40" data-logo>
+          <span class="logo__text"><span class="logo__long">University of Central Florida</span><span class="logo__short">UCF</span></span>
+        </span>
+        <span class="logo__slot logo__slot--fullsail">
+          <img class="logo__img--light" src="assets/fullsail-logo.png" alt="Full Sail University" width="69" height="48" data-logo>
+          <img class="logo__img--dark" src="assets/fullsail-logo-white.png" alt="Full Sail University" width="69" height="48" data-logo>
+          <span class="logo__text"><span class="logo__long">Full Sail University</span><span class="logo__short">Full Sail</span></span>
+        </span>
+      </a>
+
+      <div class="globalnav__right">
+        <div class="uni-switch" role="radiogroup" aria-label="University">
+          <button type="button" role="radio" data-uni="ucf" aria-checked="true">UCF</button>
+          <button type="button" role="radio" data-uni="fullsail" aria-checked="false">Full Sail</button>
+        </div>
+        <button type="button" class="icon-btn" id="theme-btn" aria-pressed="false" aria-label="Dark mode">
+          <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M20 13.4A8 8 0 1 1 10.6 4a6.3 6.3 0 0 0 9.4 9.4z"/></svg>
+          <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6 6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ───────── Local nav ───────── -->
+  <div class="localnav" id="top">
+    <div class="localnav__inner">
+      <p class="localnav__title"><span class="localnav__product">Presence</span> My Attendance</p>
+      <button type="button" class="localnav__action" id="open-customizer">Customize with AI</button>
+    </div>
+  </div>
+
+  <main>
+    <!-- ───────── Statement band ───────── -->
+    <section class="summary-band" aria-labelledby="headline">
+      <div class="summary summary--student">
+        <div class="summary__text">
+          <p class="kicker">Alex Morgan · Student ID <span class="mono">001</span></p>
+          <h1 class="headline" id="headline"><span id="remaining-count">7</span> <span id="remaining-word">absences</span> left in <span id="headline-course">Introduction to Computer Science</span>.</h1>
+          <p class="sub" id="headline-sub">3 of 10 allowed absences used · 9 weeks until the course ends on Dec 11, 2026.</p>
+        </div>
+
+        <div class="summary__side">
+          <div class="course-picker" hidden>
+            <label for="course-select">Class</label>
+            <select id="course-select" class="field field--band" aria-describedby="course-feedback">
+              <option value="cs101">CS 101 · Introduction to Computer Science</option>
+              <option value="math201">MATH 201 · Calculus II</option>
+              <option value="eng102">ENG 102 · Academic Writing</option>
+            </select>
+            <p id="course-feedback" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
+          </div>
+          <dl class="figures">
+            <div class="fig fig--present"><dd id="n-present">0</dd><dt>present</dt></div>
+            <div class="fig fig--late"><dd id="n-late">0</dd><dt>late</dt></div>
+            <div class="fig fig--absent"><dd id="n-absent">0</dd><dt>absent</dt></div>
+            <div class="fig fig--pending"><dd id="n-pending">0</dd><dt>pending</dt></div>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───────── History + side panels ───────── -->
+    <div class="student-grid">
+      <section class="history" id="history" aria-labelledby="history-title">
+        <div class="section-head">
+          <h2 id="history-title" class="section-title">Attendance history</h2>
+          <p class="section-meta" id="session-count">8 sessions</p>
+        </div>
+        <noscript><p class="help">Turn on JavaScript to switch classes. Showing CS 101 sample attendance.</p></noscript>
+
+        <div class="table-wrap" tabindex="0" role="region" aria-label="Attendance history" aria-describedby="status-help">
+          <table class="history-table">
+            <caption class="sr-only" id="history-caption">Alex Morgan's attendance history for Introduction to Computer Science, CS 101</caption>
+            <thead>
+              <tr><th scope="col">Date</th><th scope="col">Class time</th><th scope="col">Status</th><th scope="col">Checked in</th></tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row"><time datetime="2026-10-09">Oct 9, 2026</time></th><td>9:00–10:30 AM</td><td><span class="st st--pending">Pending</span></td><td>—</td></tr>
+              <tr><th scope="row"><time datetime="2026-10-07">Oct 7, 2026</time></th><td>9:00–10:30 AM</td><td><span class="st st--present">Present</span></td><td><time datetime="2026-10-07T08:57">8:57 AM</time></td></tr>
+              <tr><th scope="row"><time datetime="2026-10-05">Oct 5, 2026</time></th><td>9:00–10:30 AM</td><td><span class="st st--absent">Absent</span></td><td>—</td></tr>
+              <tr><th scope="row"><time datetime="2026-10-02">Oct 2, 2026</time></th><td>9:00–10:30 AM</td><td><span class="st st--late">Late</span></td><td><time datetime="2026-10-02T09:12">9:12 AM</time></td></tr>
+              <tr><th scope="row"><time datetime="2026-09-30">Sep 30, 2026</time></th><td>9:00–10:30 AM</td><td><span class="st st--absent">Absent</span></td><td>—</td></tr>
+              <tr><th scope="row"><time datetime="2026-09-28">Sep 28, 2026</time></th><td>9:00–10:30 AM</td><td><span class="st st--present">Present</span></td><td><time datetime="2026-09-28T08:59">8:59 AM</time></td></tr>
+              <tr><th scope="row"><time datetime="2026-09-25">Sep 25, 2026</time></th><td>9:00–10:30 AM</td><td><span class="st st--absent">Absent</span></td><td>—</td></tr>
+              <tr><th scope="row"><time datetime="2026-09-23">Sep 23, 2026</time></th><td>9:00–10:30 AM</td><td><span class="st st--present">Present</span></td><td><time datetime="2026-09-23T08:55">8:55 AM</time></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p id="status-help" class="help">Pending means your teacher hasn’t approved that day’s attendance yet.</p>
+      </section>
+
+      <aside class="side-panels" aria-label="Course details and settings">
+        <!-- Absence allowance -->
+        <section class="panel" aria-labelledby="allowance-title">
+          <h2 id="allowance-title" class="panel__title">Absence allowance</h2>
+          <p class="panel__lead" id="allowance-lead"><strong>7 left</strong> of 10 allowed.</p>
+          <div class="allowance" id="allowance-bar" role="img" aria-label="Absence allowance: 3 used, 7 remaining, 10 allowed"></div>
+          <div class="legend" aria-hidden="true"><span><i class="legend__used"></i>Used</span><span><i class="legend__left"></i>Left</span></div>
+          <p class="help" id="allowance-help">Sample policy for CS 101: 10 absences allowed. Late and Pending don’t count as absences in this example.</p>
+        </section>
+
+        <!-- Course -->
+        <section class="panel" aria-labelledby="course-panel-title">
+          <h2 id="course-panel-title" class="panel__title">Course</h2>
+          <dl class="facts-list">
+            <div><dt>Class</dt><dd id="fact-code">CS 101</dd></div>
+            <div><dt>Ends</dt><dd id="fact-end"><time datetime="2026-12-11">Dec 11, 2026</time></dd></div>
+            <div><dt>Weeks left</dt><dd id="fact-weeks">9</dd></div>
+            <div><dt>Sessions so far</dt><dd id="fact-sessions">8</dd></div>
+          </dl>
+          <p class="help">Sample schedule. Weeks left are counted from <time datetime="2026-10-09">Oct 9, 2026</time>.</p>
+        </section>
+
+        <!-- Notifications -->
+        <section class="panel" aria-labelledby="notify-title">
+          <h2 id="notify-title" class="panel__title">Notifications</h2>
+          <label class="toggle">
+            <span class="toggle__text">
+              <span class="toggle__label">Email me about my attendance</span>
+              <span class="toggle__help" id="email-help">Get an email when your attendance is updated.</span>
+            </span>
+            <input type="checkbox" id="email-notifications" class="switch-input" aria-describedby="email-help email-prototype">
+          </label>
+          <p class="help" id="email-prototype">Prototype only. This setting isn’t saved and no emails are sent.</p>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer__inner">
+      <p>Presence is a prototype for the Full Sail University “Pathways &amp; Perception” challenge. Student names and attendance are sample data.</p>
+    </div>
+  </footer>
+
+  <!-- ───────── Customize with AI ───────── -->
+  <dialog class="customizer" id="customizer" aria-labelledby="customizer-title" aria-describedby="customizer-description">
+    <div class="customizer__head">
+      <div>
+        <h2 id="customizer-title">Customize with AI</h2>
+        <p id="customizer-description" class="customizer__desc">Describe how you want this page to look. Preview as many designs as you like. Saving keeps one design and replaces the last one.</p>
+      </div>
+      <button type="button" class="customizer__close" id="close-customizer" aria-label="Close">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+
+    <p class="customizer__demo">Demo: this matches your request to a set of preset designs. No AI service is connected yet.</p>
+
+    <div class="customizer__log" id="theme-messages" role="log" aria-label="Design conversation" aria-live="polite" aria-relevant="additions">
+      <p class="msg msg--assistant">Make this page yours. Try “Minecraft with green blocks,” “neon cyberpunk,” “ocean blue,” or “soft lavender.” Your school’s logo and colors stay in the top bar.</p>
+    </div>
+
+    <div class="customizer__ideas" aria-label="Ideas">
+      <button type="button" data-prompt="Minecraft with green blocks">Minecraft</button>
+      <button type="button" data-prompt="Neon cyberpunk">Cyberpunk</button>
+      <button type="button" data-prompt="Calm ocean blue">Ocean</button>
+      <button type="button" data-prompt="Soft lavender">Lavender</button>
+    </div>
+
+    <form id="theme-form" class="customizer__form">
+      <label for="theme-prompt" class="sr-only">Describe your design</label>
+      <input id="theme-prompt" class="field" name="prompt" type="text" maxlength="400" placeholder="Describe your design" required autocomplete="off">
+      <button type="submit" class="button">Preview</button>
+    </form>
+
+    <div class="customizer__foot">
+      <p id="theme-state" role="status">One saved design · Change it anytime</p>
+      <p class="customizer__note">Saved in this browser only.</p>
+      <div class="customizer__actions">
+        <button type="button" id="reset-theme" class="button button--secondary">Use school design</button>
+        <button type="button" id="save-theme" class="button" disabled>Save design</button>
+      </div>
+    </div>
+  </dialog>
+</body>
+</html>
