@@ -25,3 +25,10 @@ presence-site/
 
 The camera only works when the page is served over http://localhost or https
 (for example with VS Code Live Server), not when opened as a file.
+
+## Python webcam recognition prototype
+
+See [face_data/README.md](face_data/README.md) to run local webcam recognition.
+This is a separate Python prototype; it is not connected to the web portal and
+does not record attendance yet. Each teammate supplies their own local reference
+photos and students.json, then downloads the models using the documented command.
