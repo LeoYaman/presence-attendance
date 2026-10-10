@@ -398,6 +398,7 @@ a { color: inherit; text-decoration: none; }
    Roster
    ========================================================================== */
 .roster {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .1);
   position: sticky; top: 68px;
   display: flex; flex-direction: column;
   height: calc(100dvh - 84px); min-height: 560px;
@@ -435,7 +436,7 @@ a { color: inherit; text-decoration: none; }
 .students { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 20px; }
 .student { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 8px 0; border-bottom: 1px solid var(--hairline); }
 .student:last-child { border-bottom: 0; }
-.student.is-new { background: color-mix(in srgb, var(--action) 14%, transparent); margin: 0 -20px; padding-left: 20px; padding-right: 20px; }
+.student:hover { background: color-mix(in srgb, var(--action) 14%, transparent); margin: 0 -20px; padding-left: 20px; padding-right: 20px; }
 
 /* One-tap check box */
 .tick {
@@ -450,12 +451,13 @@ a { color: inherit; text-decoration: none; }
 }
 .tick svg { width: 16px; height: 16px; opacity: 0; }
 .tick:hover:not(:disabled) span { border-color: var(--label); }
-.student[data-status="present"] .tick span,
-.student[data-status="late"] .tick span { background: var(--check-fill); border-color: var(--check-fill); }
-.student[data-status="present"] .tick svg,
-.student[data-status="late"] .tick svg { opacity: 1; color: var(--check-mark); }
+.student[data-status="present"] .tick span { background: color-mix(in srgb, var(--present) 12%, var(--surface)); border-color: var(--present); }
+.student[data-status="present"] .tick svg { opacity: 1; color: var(--present); }
+.student[data-status="late"] .tick span { background: color-mix(in srgb, var(--late) 12%, var(--surface)); border-color: var(--late); }
+.student[data-status="late"] .tick svg { opacity: 1; color: var(--late); }
 .student[data-status="absent"] .tick span { border-color: var(--absent); }
 .student[data-status="absent"] .tick svg { opacity: 1; color: var(--absent); }
+.student[data-status="pending"] .tick span { border-color: var(--secondary); }
 .tick:disabled { cursor: default; }
 
 .student__info { flex: 1; min-width: 0; }
@@ -473,7 +475,19 @@ a { color: inherit; text-decoration: none; }
 }
 .status:hover:not(:disabled) { background-color: var(--surface-2); }
 .status:disabled { background-image: none; padding-right: 6px; cursor: default; opacity: 1; }
-.status option { color: var(--label); background: var(--surface); font-weight: 400; }
+.status option { background: var(--surface); font-family: var(--font-body); font-size: 14px; font-weight: 600; }
+.status option[value="present"] { color: var(--present); }
+.status option[value="late"] { color: var(--late); }
+.status option[value="absent"] { color: var(--absent); }
+.status option[value="pending"] { color: var(--secondary); }
+@supports (appearance: base-select) {
+  .status, .status::picker(select) { appearance: base-select; }
+  .status { align-items: center; }
+  .status::picker-icon { display: none; }
+  .status::picker(select) { border: 1px solid var(--hairline); border-radius: var(--radius-btn); background: var(--surface); padding: 4px; box-shadow: 0 6px 18px rgba(0,0,0,.14); }
+  .status option { padding: 8px 12px; border-radius: var(--radius-btn); cursor: pointer; }
+  .status option:hover, .status option:focus { background: var(--surface-2); }
+}
 .status--present { color: var(--present); }
 .status--late    { color: var(--late); }
 .status--absent  { color: var(--absent); }
@@ -559,3 +573,38 @@ a { color: inherit; text-decoration: none; }
   [data-university] { --secondary: #333; --hairline: #8c8c8c; }
   [data-university][data-theme="dark"] { --secondary: #ddd; --hairline: #8c8c8c; }
 }
+
+.summary__figures .figures { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.summary__figures .fig dt { white-space: nowrap; }
+.summary__figures .fig dt::before { flex-shrink: 0; }
+
+.summary__figures .fig { display: flex; align-items: baseline; gap: 8px; }
+.summary__figures .fig dt { align-self: center; }
+
+
+.summary__figures .fig dd { font-size: 13px; font-family: var(--font-body); line-height: inherit; }
+
+/* UCF colors for the first three roster markers. */
+.student[data-status="present"] .tick span { background: #edb80d; border-color: #edb80d; }
+.student[data-status="present"] .tick svg { color: #000; }
+.student[data-status="late"] .tick span { background: #66666e; border-color: #edb80d; }
+.student[data-status="late"] .tick svg { color: #edb80d; }
+.student[data-status="absent"] .tick span { background: #000; border-color: #edb80d; }
+.student[data-status="absent"] .tick svg { color: #edb80d; }
+
+@media (min-width: 761px) {
+ .workspace { align-items: stretch; }
+ .workspace > .roster { position: static; height: auto; min-height: 0; align-self: stretch; contain: size; }
+}
+
+/* Roster marker colors follow the selected university. */
+[data-university="ucf"] { --roster-accent: #edb80d; --roster-ink: #000; }
+[data-university="fullsail"] { --roster-accent: #ef4723; --roster-ink: #201e1e; }
+[data-university] .student[data-status="present"] .tick span { background: var(--roster-accent); border-color: var(--roster-accent); }
+[data-university] .student[data-status="present"] .tick svg { color: var(--roster-ink); }
+[data-university] .student[data-status="late"] .tick span { background: #66666e; border-color: var(--roster-accent); }
+[data-university] .student[data-status="late"] .tick svg { color: var(--roster-accent); }
+[data-university] .student[data-status="absent"] .tick span { background: var(--roster-ink); border-color: var(--roster-accent); }
+[data-university] .student[data-status="absent"] .tick svg { color: var(--roster-accent); }
+
+.logo__slot--ucf .ucf-header-image { display: block; width: auto; height: 40px; object-fit: contain; margin-right: 0; }

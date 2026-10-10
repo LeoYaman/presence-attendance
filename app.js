@@ -143,6 +143,9 @@ function renderSummary() {
 const CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="square" aria-hidden="true"><path class="tick__check" d="M5 12.5 10 17.5 19 7"/></svg>';
 const CROSS_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="square" aria-hidden="true"><path d="M7 7l10 10M17 7 7 17"/></svg>';
 
+const TRIANGLE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" aria-hidden="true"><path d="M12 4 21 20H3Z"/></svg>';
+const STATUS_CYCLE = ['present', 'late', 'absent', 'pending'];
+
 function detail(s) {
   if (s.status === 'present' || s.status === 'late') {
     return `${s.number} · ${fmtTime(s.time)} · ${s.source === 'teacher' ? 'ticked by teacher' : 'camera'}`;
@@ -160,12 +163,12 @@ function renderList(highlightId) {
   $('#student-list').innerHTML = rows.map(s => {
     const options = Object.entries(STATUS_LABEL)
       .map(([v, l]) => `<option value="${v}"${v === s.status ? ' selected' : ''}>${l}</option>`).join('');
-    const checked = s.status === 'present' || s.status === 'late';
+    const nextStatus = STATUS_CYCLE[(STATUS_CYCLE.indexOf(s.status) + 1) % STATUS_CYCLE.length];
     return `
-      <li class="student${s.id === highlightId ? ' is-new' : ''}" data-id="${esc(s.id)}" data-status="${s.status}">
-        <button type="button" class="tick" role="checkbox" aria-checked="${checked}" ${state.approved ? 'disabled' : ''}
-          aria-label="${esc(s.name)} is here">
-          <span>${s.status === 'absent' ? CROSS_SVG : CHECK_SVG}</span>
+      <li class="student" data-id="${esc(s.id)}" data-status="${s.status}">
+        <button type="button" class="tick" ${state.approved ? 'disabled' : ''}
+          aria-label="${esc(s.name)}: ${STATUS_LABEL[s.status]}. Change to ${STATUS_LABEL[nextStatus]}">
+          <span>${s.status === 'present' ? CHECK_SVG : s.status === 'late' ? TRIANGLE_SVG : s.status === 'absent' ? CROSS_SVG : ''}</span>
         </button>
         <span class="student__info">
           <span class="student__name">${esc(s.name)}</span>
@@ -207,20 +210,17 @@ $('#student-list').addEventListener('change', e => {
   notify(`${s.name} marked ${STATUS_LABEL[s.status].toLowerCase()}.`, { undoable: true });
 });
 
-/* One tap to tick a student off as they walk in (tap again to undo the tick) */
+/* Cycle through all four attendance statuses. */
 $('#student-list').addEventListener('click', e => {
   const btn = e.target.closest('.tick');
   if (!btn || state.approved) return;
   const s = studentById(btn.closest('.student').dataset.id);
-  const here = s.status === 'present' || s.status === 'late';
-  if (here) {
-    snapshot();
-    s.status = 'pending'; s.time = null; s.source = null;
-    render(s.id);
-    notify(`${s.name} unticked.`, { undoable: true });
-  } else {
-    checkIn(s.id, 'teacher');
-  }
+  snapshot();
+  s.status = STATUS_CYCLE[(STATUS_CYCLE.indexOf(s.status) + 1) % STATUS_CYCLE.length];
+  s.source = s.status === 'pending' ? null : 'teacher';
+  s.time = (s.status === 'present' || s.status === 'late') ? new Date() : null;
+  render(s.id);
+  notify(`${s.name} marked ${STATUS_LABEL[s.status].toLowerCase()}.`, { undoable: true });
   $(`.student[data-id="${CSS.escape(s.id)}"] .tick`)?.focus();
 });
 

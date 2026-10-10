@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <!-- UCF web fonts: Oswald, Montserrat, Roboto Mono · Full Sail: Arvo (slab, close to Lubalin Graph), Roboto -->
   <link href="https://fonts.googleapis.com/css2?family=Arvo:wght@400;700&family=Montserrat:wght@400;500;600;700&family=Oswald:wght@500;600&family=Roboto+Mono:wght@400;500&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=certainty-window-1">
+  <link rel="stylesheet" href="styles.css?v=ucf-local-logo-1">
   <script>
     try {
       var u = localStorage.getItem('presence-university'), t = localStorage.getItem('presence-theme');
@@ -27,17 +27,15 @@
   <header class="globalnav">
     <div class="globalnav__inner">
       <!-- Logos: drop the official files into /assets (see README note). Until then the name shows as text. -->
-      <a class="logo" href="#top">
+      <div class="logo">
         <span class="logo__slot logo__slot--ucf">
-          <img src="assets/ucf-logo.png" alt="UCF" width="53" height="40" data-logo>
-          <span class="logo__text"><span class="logo__long">University of Central Florida</span><span class="logo__short">UCF</span></span>
+          <img class="ucf-header-image" src="ucf-header-logo.png" alt="UCF Knights logo" width="40" height="40">
         </span>
         <span class="logo__slot logo__slot--fullsail">
-          <img class="logo__img--light" src="assets/fullsail-logo.png" alt="Full Sail University" width="69" height="48" data-logo>
-          <img class="logo__img--dark" src="assets/fullsail-logo-white.png" alt="Full Sail University" width="69" height="48" data-logo>
-          <span class="logo__text"><span class="logo__long">Full Sail University</span><span class="logo__short">Full Sail</span></span>
+          <img class="logo__img--light" src="fullsail-header-dark.png" alt="Full Sail University" width="69" height="48" data-logo>
+          <img class="logo__img--dark" src="fullsail-header-light.png" alt="Full Sail University" width="69" height="48" data-logo>
         </span>
-      </a>
+      </div>
 
       <div class="globalnav__right">
         <div class="uni-switch" role="radiogroup" aria-label="University">
@@ -139,7 +137,6 @@
       <section class="roster" id="roster" aria-labelledby="roster-title">
         <div class="roster__head">
           <h2 id="roster-title" class="roster__title">Roster</h2>
-          <p class="roster__hint">Tick students off as they walk in.</p>
         </div>
 
         <div class="roster__tools">
@@ -195,6 +192,6 @@
     <button type="button" class="link" id="toast-undo" hidden>Undo</button>
   </div>
 
-  <script src="app.js?v=identification-heading-1" type="module"></script>
+  <script src="app.js?v=roster-hover-1" type="module"></script>
 </body>
 </html>
