@@ -7,7 +7,7 @@
   <title>Fictional alert demo · Presence</title>
   <link rel="stylesheet" href="/demo-alerts.css">
   <script src="/demo-alerts.js" defer></script>
-</head>
+<link rel="stylesheet" href="/attendance-insights.css"><script src="/attendance-insights.js" defer></script></head>
 <body>
   <header class="topbar"><a href="/">Presence</a><a href="/login.html">Sign in / use cases</a></header>
   <main>
@@ -36,6 +36,13 @@
       </section>
     </div>
     <p class="footer-note">A record is a presentation scenario, not a claim about a real person. This demo is separate from attendance and recognition workflows.</p>
-  </main>
+      <section class="attendance-analytics" id="databricks-panel" aria-labelledby="databricks-title">
+      <div class="analytics-heading"><h2 id="databricks-title">Databricks attendance insights</h2><button class="button button--secondary" type="button" id="analytics-clear">Clear results</button></div>
+      <p>Historical report, separate from the current class session. Attendance includes present and late records; late rate uses all records. These are attendance percentages, not recognition accuracy.</p>
+      <label>Import a Databricks report <input id="analytics-file" type="file" accept=".json,application/json"></label>
+      <p id="analytics-status" role="status">No report loaded. Choose a Databricks JSON report to display results.</p><div id="analytics-results" class="analytics-cards"></div>
+      <details><summary>Export finalized class data for another analysis</summary><label>Class <select id="analytics-group" class="field"></select></label><button id="analytics-export" class="button button--secondary" disabled>Download pseudonymous CSV</button></details>
+    </section>
+</main>
 </body>
 </html>

@@ -1,3 +1,4 @@
+import {createAttendanceExport} from './attendance-analytics.mjs';
 import {createTeamDemo} from './team-demo.mjs';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
@@ -63,6 +64,7 @@ export function createApp({ pool, publicOrigin = 'http://localhost:3000', secure
   const attempts = new Map();
   const dummyHashPromise = hashPassword(opaqueToken());
   const adminApi = createAdminApi({pool,fail,uuid,timestamp,fields,recordingStore});
+  const attendanceExport=createAttendanceExport({pool,fail,uuid,syntheticCamera});
   const teamDemo=createTeamDemo({pool,faceWorker,fail,fields,enabled:syntheticCamera});
   const passengerApi = createPassengerApi({pool,faceWorker,fail,fields});
   const subjectsApi = createSubjectsApi({pool,subjectRegistry,fail,fields,uuid});
@@ -105,12 +107,13 @@ export function createApp({ pool, publicOrigin = 'http://localhost:3000', secure
     }});
   const staticFiles = new Map([['/', ['index.html','text/html; charset=utf-8']], ['/index.html',['index.html','text/html; charset=utf-8']],
     ['/app.js',['app.js','text/javascript; charset=utf-8']], ['/camera-client.js',['camera-client.js','text/javascript; charset=utf-8']], ['/recording-client.js',['recording-client.js','text/javascript; charset=utf-8']], ['/styles.css',['styles.css','text/css; charset=utf-8']]]);
+  staticFiles.set('/databricks/demo-results.json',['databricks/demo-results.json','application/json; charset=utf-8']);
   // Publish only the UI files; credentials, datasets and backend source stay private.
   const uiFiles = {
-    'text/html; charset=utf-8': ['team-demo.html','criminal-detection.html','criminal-test.html','parent-child.html','login.html','student.html',
+    'text/html; charset=utf-8': ['attendance-insights.html','team-demo.html','criminal-detection.html','criminal-test.html','parent-child.html','login.html','student.html',
       'Frontend/Studentpage/index.html','Frontend/Teacherpage/index.html','teacherPortal/index.html'],
-    'text/css; charset=utf-8': ['team-demo.css','pickup-requests.css','usecase-navigation.css','usecase-workspace.css','neutral-theme.css','login.css','student.css','Frontend/Studentpage/styles.css','Frontend/Teacherpage/styles.css','teacherPortal/styles.css'],
-    'text/javascript; charset=utf-8': ['team-demo.js','pickup-demo.js','subjects-camera.js','criminal-data.js','usecase-workspace.js','passenger-camera.js','login.js','student.js','customize.js','Frontend/Studentpage/student.js','Frontend/Studentpage/customize.js','teacherPortal/app.js'],
+    'text/css; charset=utf-8': ['attendance-insights.css','team-demo.css','pickup-requests.css','usecase-navigation.css','usecase-workspace.css','neutral-theme.css','login.css','student.css','Frontend/Studentpage/styles.css','Frontend/Teacherpage/styles.css','teacherPortal/styles.css'],
+    'text/javascript; charset=utf-8': ['attendance-insights.js','team-demo.js','pickup-demo.js','subjects-camera.js','criminal-data.js','usecase-workspace.js','passenger-camera.js','login.js','student.js','customize.js','Frontend/Studentpage/student.js','Frontend/Studentpage/customize.js','teacherPortal/app.js'],
     'image/png': ['ucf-logo.png','ucf-header-logo.png','fullsail-logo.png','fullsail-logo-white.png','fullsail-header-light.png','fullsail-header-dark.png',
       'assets/ucf-logo.png','assets/fullsail-logo.png','assets/fullsail-logo-white.png']
   };
@@ -177,7 +180,7 @@ export function createApp({ pool, publicOrigin = 'http://localhost:3000', secure
     if(path.startsWith('/api/subjects/external/')) {
       fail(404,'not_found','Route not found');
     }
-    if (url.search && path!=='/api/subjects' && !path.startsWith('/api/admin/')) fail(400,'unsupported_query','Query parameters are unsupported');
+    if (url.search && path!=='/api/subjects' && path!=='/api/attendance-insights/export' && !path.startsWith('/api/admin/')) fail(400,'unsupported_query','Query parameters are unsupported');
     const recordingChunkRoute=path.match(/^\/api\/recordings\/([^/]+)\/chunks\/(\d+)$/);
     if (!['GET','POST'].includes(method) && !(method==='PUT'&&recordingChunkRoute)) fail(405,'method_not_allowed','Method not allowed');
     if (['POST','PUT'].includes(method) && req.headers.origin !== origin) fail(403,'invalid_origin','Request must come from this application');
@@ -212,6 +215,7 @@ export function createApp({ pool, publicOrigin = 'http://localhost:3000', secure
         fail(403,'invalid_csrf','Refresh the page and try again');
     }
     if (path === '/api/me' && method === 'GET') return {user:userView(user),csrfToken:user.csrf_token,capabilities:{syntheticCamera}};
+    if(path==='/api/attendance-insights/export' && method==='GET')return await attendanceExport({user,url,res});
     if((path==='/api/team-demo/detect' && method==='POST')||(path==='/api/team-demo/participants' && ['GET','POST'].includes(method))||(path==='/api/team-demo/participants/delete' && method==='POST')) {
       try{return await teamDemo({user,body,action:path.endsWith('/delete')?'delete':path.endsWith('/participants')?(method==='GET'?'list':'add'):'detect'});}catch(error){if(error instanceof HttpError)throw error;throw new HttpError(error.status||503,error.code||'face_service_unavailable',error.message||'Face service unavailable');}
     }

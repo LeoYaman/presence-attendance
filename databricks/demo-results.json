@@ -1,0 +1,297 @@
+{
+  "version": 1,
+  "engine": "Databricks Spark",
+  "generated_at": "2026-10-11T04:55:08.902448+00:00",
+  "synthetic": true,
+  "quality": {
+    "input_rows": 1080,
+    "clean_rows": 1080,
+    "duplicates_removed": 0
+  },
+  "classes": [
+    {
+      "class_code": "DEMO-BIO",
+      "total": 360,
+      "attended": 290,
+      "late": 32,
+      "absent": 70,
+      "attendance_rate": 80.6,
+      "late_rate": 8.9,
+      "suggestion": "Continue monitoring aggregate attendance trends."
+    },
+    {
+      "class_code": "DEMO-CS",
+      "total": 360,
+      "attended": 291,
+      "late": 66,
+      "absent": 69,
+      "attendance_rate": 80.8,
+      "late_rate": 18.3,
+      "suggestion": "Continue monitoring aggregate attendance trends."
+    },
+    {
+      "class_code": "DEMO-MATH",
+      "total": 360,
+      "attended": 270,
+      "late": 32,
+      "absent": 90,
+      "attendance_rate": 75.0,
+      "late_rate": 8.9,
+      "suggestion": "Continue monitoring aggregate attendance trends."
+    }
+  ],
+  "daily": [
+    {
+      "class_code": "DEMO-BIO",
+      "day": "2026-09-01",
+      "total": 30,
+      "attended": 23,
+      "late": 1
+    },
+    {
+      "class_code": "DEMO-BIO",
+      "day": "2026-09-03",
+      "total": 30,
+      "attended": 25,
+      "late": 0
+    },
+    {
+      "class_code": "DEMO-BIO",
+      "day": "2026-09-05",
+      "total": 30,
+      "attended": 27,
+      "late": 4
+    },
+    {
+      "class_code": "DEMO-BIO",
+      "day": "2026-09-07",
+      "total": 30,
+      "attended": 27,
+      "late": 1
+    },
+    {
+      "class_code": "DEMO-BIO",
+      "day": "2026-09-09",
+      "total": 30,
+      "attended": 24,
+      "late": 3
+    },
+    {
+      "class_code": "DEMO-BIO",
+      "day": "2026-09-11",
+      "total": 30,
+      "attended": 20,
+      "late": 6
+    },
+    {
+      "class_code": "DEMO-BIO",
+      "day": "2026-09-13",
+      "total": 30,
+      "attended": 21,
+      "late": 2
+    },
+    {
+      "class_code": "DEMO-BIO",
+      "day": "2026-09-15",
+      "total": 30,
+      "attended": 27,
+      "late": 2
+    },
+    {
+      "class_code": "DEMO-BIO",
+      "day": "2026-09-17",
+      "total": 30,
+      "attended": 25,
+      "late": 4
+    },
+    {
+      "class_code": "DEMO-BIO",
+      "day": "2026-09-19",
+      "total": 30,
+      "attended": 23,
+      "late": 1
+    },
+    {
+      "class_code": "DEMO-BIO",
+      "day": "2026-09-21",
+      "total": 30,
+      "attended": 24,
+      "late": 7
+    },
+    {
+      "class_code": "DEMO-BIO",
+      "day": "2026-09-23",
+      "total": 30,
+      "attended": 24,
+      "late": 1
+    },
+    {
+      "class_code": "DEMO-CS",
+      "day": "2026-09-01",
+      "total": 30,
+      "attended": 23,
+      "late": 6
+    },
+    {
+      "class_code": "DEMO-CS",
+      "day": "2026-09-03",
+      "total": 30,
+      "attended": 27,
+      "late": 3
+    },
+    {
+      "class_code": "DEMO-CS",
+      "day": "2026-09-05",
+      "total": 30,
+      "attended": 24,
+      "late": 3
+    },
+    {
+      "class_code": "DEMO-CS",
+      "day": "2026-09-07",
+      "total": 30,
+      "attended": 25,
+      "late": 6
+    },
+    {
+      "class_code": "DEMO-CS",
+      "day": "2026-09-09",
+      "total": 30,
+      "attended": 24,
+      "late": 3
+    },
+    {
+      "class_code": "DEMO-CS",
+      "day": "2026-09-11",
+      "total": 30,
+      "attended": 23,
+      "late": 2
+    },
+    {
+      "class_code": "DEMO-CS",
+      "day": "2026-09-13",
+      "total": 30,
+      "attended": 21,
+      "late": 4
+    },
+    {
+      "class_code": "DEMO-CS",
+      "day": "2026-09-15",
+      "total": 30,
+      "attended": 24,
+      "late": 8
+    },
+    {
+      "class_code": "DEMO-CS",
+      "day": "2026-09-17",
+      "total": 30,
+      "attended": 24,
+      "late": 9
+    },
+    {
+      "class_code": "DEMO-CS",
+      "day": "2026-09-19",
+      "total": 30,
+      "attended": 22,
+      "late": 6
+    },
+    {
+      "class_code": "DEMO-CS",
+      "day": "2026-09-21",
+      "total": 30,
+      "attended": 25,
+      "late": 9
+    },
+    {
+      "class_code": "DEMO-CS",
+      "day": "2026-09-23",
+      "total": 30,
+      "attended": 29,
+      "late": 7
+    },
+    {
+      "class_code": "DEMO-MATH",
+      "day": "2026-09-01",
+      "total": 30,
+      "attended": 25,
+      "late": 4
+    },
+    {
+      "class_code": "DEMO-MATH",
+      "day": "2026-09-03",
+      "total": 30,
+      "attended": 21,
+      "late": 4
+    },
+    {
+      "class_code": "DEMO-MATH",
+      "day": "2026-09-05",
+      "total": 30,
+      "attended": 22,
+      "late": 3
+    },
+    {
+      "class_code": "DEMO-MATH",
+      "day": "2026-09-07",
+      "total": 30,
+      "attended": 22,
+      "late": 2
+    },
+    {
+      "class_code": "DEMO-MATH",
+      "day": "2026-09-09",
+      "total": 30,
+      "attended": 18,
+      "late": 1
+    },
+    {
+      "class_code": "DEMO-MATH",
+      "day": "2026-09-11",
+      "total": 30,
+      "attended": 24,
+      "late": 0
+    },
+    {
+      "class_code": "DEMO-MATH",
+      "day": "2026-09-13",
+      "total": 30,
+      "attended": 20,
+      "late": 3
+    },
+    {
+      "class_code": "DEMO-MATH",
+      "day": "2026-09-15",
+      "total": 30,
+      "attended": 16,
+      "late": 3
+    },
+    {
+      "class_code": "DEMO-MATH",
+      "day": "2026-09-17",
+      "total": 30,
+      "attended": 26,
+      "late": 4
+    },
+    {
+      "class_code": "DEMO-MATH",
+      "day": "2026-09-19",
+      "total": 30,
+      "attended": 26,
+      "late": 1
+    },
+    {
+      "class_code": "DEMO-MATH",
+      "day": "2026-09-21",
+      "total": 30,
+      "attended": 22,
+      "late": 3
+    },
+    {
+      "class_code": "DEMO-MATH",
+      "day": "2026-09-23",
+      "total": 30,
+      "attended": 28,
+      "late": 4
+    }
+  ]
+}

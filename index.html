@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <!-- UCF web fonts: Oswald, Montserrat, Roboto Mono · Full Sail: Arvo (slab, close to Lubalin Graph), Roboto -->
   <link href="https://fonts.googleapis.com/css2?family=Arvo:wght@400;700&family=Montserrat:wght@400;500;600;700&family=Oswald:wght@500;600&family=Roboto+Mono:wght@400;500&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="/attendance-insights.css">
   <link rel="stylesheet" href="usecase-navigation.css">
 </head>
 <body>
@@ -32,7 +32,8 @@
         </span>
       </a>
 
-      <div class="globalnav__right">
+      <div class="globalnav__right"><a href="/attendance-insights.html">Attendance insights</a>
+        <a class="team-back" href="/demo-alerts.html?scenario=flight">Flight booking demo</a>
         <a href="/team-demo.html">Team camera demo</a>
         <div class="uni-switch" role="radiogroup" aria-label="University">
           <button type="button" role="radio" data-uni="ucf" aria-checked="true">UCF</button>
@@ -70,6 +71,7 @@
       <div class="table-scroll"><table class="data-table"><caption>Attendance history</caption><thead><tr><th scope="col">Course section</th><th scope="col">Session · course time zone</th><th scope="col">Status</th><th scope="col">Check-in</th></tr></thead><tbody id="history-rows"></tbody></table></div>
     </section>
     <div id="teacher-content">
+
     <section class="session-controls" aria-label="Course and session controls">
       <div class="session-selectors">
         <label>Choose course<select id="group-select" class="field"><option value="">Choose a course section</option></select></label>
@@ -226,6 +228,13 @@
       <article class="dashboard-panel"><h2>Daily attendance for this section</h2><p class="integration-note">Finalized sessions only · dates use the course time zone.</p><div class="table-scroll"><table class="data-table"><caption class="sr-only">Daily attendance totals in course time zone</caption><thead><tr><th scope="col">Day</th><th scope="col">Present</th><th scope="col">Late</th><th scope="col">Absent</th><th scope="col">Not seen</th><th scope="col">Total</th></tr></thead><tbody id="daily-trends"></tbody></table></div></article>
     </section>
     </div>
+      <section class="attendance-analytics" id="databricks-panel" aria-labelledby="databricks-title">
+      <div class="analytics-heading"><h2 id="databricks-title">Databricks attendance insights</h2><button class="button button--secondary" type="button" id="analytics-clear">Clear results</button></div>
+      <p>Historical report, separate from the current class session. Attendance includes present and late records; late rate uses all records. These are attendance percentages, not recognition accuracy.</p>
+      <label>Import a Databricks report <input id="analytics-file" type="file" accept=".json,application/json"></label>
+      <p id="analytics-status" role="status">No report loaded. Choose a Databricks JSON report to display results.</p><div id="analytics-results" class="analytics-cards"></div>
+      <details><summary>Export finalized class data for another analysis</summary><label>Class <select id="analytics-group" class="field"></select></label><button id="analytics-export" class="button button--secondary" disabled>Download pseudonymous CSV</button></details>
+    </section>
   </main>
 
   <footer class="footer">
@@ -253,6 +262,7 @@
   </div>
 
   <script src="app.js" type="module"></script>
+  <script src="attendance-insights.js" defer></script>
   <script src="camera-client.js" type="module"></script>
   <script src="subjects-camera.js" defer></script>
   <script src="recording-client.js" type="module"></script>

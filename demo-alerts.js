@@ -1,5 +1,7 @@
 'use strict';
 // This page has no camera, recognition, attendance writes, or emergency-service integration.
+const flightDemo = globalThis.location?.search?.includes('scenario=flight') === true;
+if(flightDemo){document.title='Presence ? Fictional flight booking';document.querySelector('h1').textContent='Fictional flight booking demo';document.querySelector('.intro').textContent='Manually demonstrate the booking status of a fictional reservation. This does not use face recognition or make a real boarding decision.';}
 const element = id => document.getElementById(id);
 const state = { authenticated: false, csrf: '', records: [], feedReady: false, refreshing: false, simulating: false, version: 0 };
 let timer;
@@ -57,9 +59,10 @@ function renderFeed(payload) {
     ids.add(String(record.id));
   }
   const previous = element('record').value;
-  state.records = payload.records;
+  state.records = flightDemo ? payload.records.filter(record=>record.id==='demo-flight-booking') : payload.records;
   element('record').replaceChildren(new Option('Choose a fictional record', ''), ...state.records.map(record => new Option(record.name, String(record.id))));
   if (ids.has(previous)) element('record').value = previous;
+  else if(flightDemo && state.records.length===1)element('record').value=state.records[0].id;
   if (previous && !ids.has(previous)) clearResult();
   state.feedReady = true;
   element('count').textContent = `${state.records.length} fictional record${state.records.length === 1 ? '' : 's'} · Last refreshed ${new Date().toLocaleTimeString()}`;
