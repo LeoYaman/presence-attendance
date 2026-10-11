@@ -138,7 +138,7 @@ export function createApp({ pool, publicOrigin = 'http://localhost:3000', secure
     const recordingChunkRoute=path.match(/^\/api\/recordings\/([^/]+)\/chunks\/(\d+)$/);
     if (!['GET','POST'].includes(method) && !(method==='PUT'&&recordingChunkRoute)) fail(405,'method_not_allowed','Method not allowed');
     if (['POST','PUT'].includes(method) && req.headers.origin !== origin) fail(403,'invalid_origin','Request must come from this application');
-    const body = method === 'POST' ? await readBody(req, (path==='/api/team-demo/detect'||path==='/api/passengers/detect'||/^\/api\/groups\/[^/]+\/faces\/(detect|enroll)$/.test(path)) ? 400000 : 8192) : null;
+    const body = method === 'POST' ? await readBody(req, (path.startsWith('/api/team-demo/')||path==='/api/passengers/detect'||/^\/api\/groups\/[^/]+\/faces\/(detect|enroll)$/.test(path)) ? 400000 : 8192) : null;
     if (path === '/api/login' && method === 'POST') {
       fields(body,['email','password'],['email','password']);
       if (typeof body.email !== 'string' || body.email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email.trim()) ||
@@ -169,8 +169,8 @@ export function createApp({ pool, publicOrigin = 'http://localhost:3000', secure
         fail(403,'invalid_csrf','Refresh the page and try again');
     }
     if (path === '/api/me' && method === 'GET') return {user:userView(user),csrfToken:user.csrf_token,capabilities:{syntheticCamera}};
-    if(path==='/api/team-demo/detect' && method==='POST') {
-      try{return await teamDemo({user,body});}catch(error){if(error instanceof HttpError)throw error;throw new HttpError(error.status||503,error.code||'face_service_unavailable',error.message||'Face service unavailable');}
+    if((path==='/api/team-demo/detect' && method==='POST')||(path==='/api/team-demo/participants' && ['GET','POST'].includes(method))||(path==='/api/team-demo/participants/delete' && method==='POST')) {
+      try{return await teamDemo({user,body,action:path.endsWith('/delete')?'delete':path.endsWith('/participants')?(method==='GET'?'list':'add'):'detect'});}catch(error){if(error instanceof HttpError)throw error;throw new HttpError(error.status||503,error.code||'face_service_unavailable',error.message||'Face service unavailable');}
     }
     if (path === '/api/passengers' || path === '/api/passengers/detect') return passengerApi({method,path,user,body});
     if (path === '/api/demo-alerts' || path === '/api/demo-alerts/simulate') {

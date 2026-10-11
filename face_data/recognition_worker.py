@@ -4,6 +4,7 @@ Identity matches are local suggestions. The worker emits no attendance writes,
 and an identity match must not be treated as server-authenticated evidence.
 """
 from __future__ import annotations
+import time
 
 import base64
 import hashlib
@@ -150,13 +151,15 @@ class RecognitionWorker:
         self.enrollments: dict[str, dict[str, Enrollment]] = {}
         self.models: dict[str, tuple[tuple[str, ...], dict[str, Any]]] = {}
         self.reference_recognizer: Any = None
+        self.demo_features = {}
 
-    def _detect_references(self, frame: Any, mappings: dict[str, str]) -> dict[str, Any]:
+    def _detect_references(self, frame: Any, mappings: dict[str, str], temporary=None) -> dict[str, Any]:
         if self.reference_recognizer is None:
             self.reference_recognizer = _create_reference_recognizer()
         recognizer = self.reference_recognizer
         gallery = {student["id"]: saved for student, saved in recognizer.gallery
                    if student.get("kind") == "team" and student.get("id") in TEAM_REFERENCE_KEYS}
+        gallery.update(temporary or {})
         if not set(mappings).issubset(gallery):
             raise RequestError("referenceMappings includes an unavailable team reference")
         height, width = frame.shape[:2]
@@ -270,6 +273,27 @@ class RecognitionWorker:
 
     def process(self, request: dict[str, Any]) -> dict[str, Any]:
         action = request.get("action")
+        now = time.monotonic()
+        self.demo_features = {key: value for key, value in self.demo_features.items() if value[1] > now}
+        if action in {"demo_enroll", "demo_delete"}:
+            scope = _request_scope(request)
+            person = request.get("personId")
+            if not isinstance(person, str) or not person.startswith("guest_") or len(person)>80:
+                raise RequestError("Invalid temporary participant")
+            if action == "demo_delete":
+                self.demo_features.pop((scope, person), None)
+                return {"deleted": True}
+            if len(self.demo_features)>=64 or sum(key[0]==scope for key in self.demo_features)>=5:
+                raise RequestError("Temporary participant limit reached")
+            frame, _ = _decode_image(request.get("image"), self.cv2)
+            if self.reference_recognizer is None:
+                self.reference_recognizer = _create_reference_recognizer()
+            faces = self.reference_recognizer.detect(frame)
+            if len(faces)!=1 or float(faces[0][-1])<MIN_DETECTION_SCORE or min(float(faces[0][2]),float(faces[0][3]))<80:
+                raise RequestError("Capture one clear face, at least 80 pixels wide and high")
+            feature = self.reference_recognizer.feature(frame, faces[0])
+            self.demo_features[(scope,person)] = (feature,now+3600)
+            return {"enrolled": True}
         if action not in {"detect", "enroll", "clear"}:
             raise RequestError("action must be detect, enroll, or clear")
         group_id = _request_scope(request)
@@ -292,8 +316,11 @@ class RecognitionWorker:
         self._prune_to_allowed(group_id, allowed)
         mappings = _reference_mappings(request, allowed) if action == "detect" else {}
         frame, raw = _decode_image(request.get("image"), self.cv2)
+        temporary = {person: feature for (scope,person),(feature,expiry) in self.demo_features.items()
+                     if scope == request.get("demoScope") and person in allowed}
+        mappings.update({person:person for person in temporary})
         if mappings:
-            return {**self._detect_references(frame, mappings),
+            return {**self._detect_references(frame, mappings, temporary),
                     "sampleCounts": self._sample_counts(group_id, allowed)}
         faces = self._faces(frame)
         if action == "enroll":
