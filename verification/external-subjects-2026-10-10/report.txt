@@ -1,0 +1,31 @@
+External Subjects verification — 2026-10-10
+
+ACTUAL LOCAL STATE
+SubjectRegistry and Attendance use separate physical PGlite database snapshots and separate HTTP services.
+Registry API: http://127.0.0.1:3002
+Application: http://localhost:3000
+SubjectRegistry contains exactly Olivia and one validated face reference. No Anthony, Leo or Rebbeca rows exist in this registry.
+Attendance has zero legacy subject tables. Migration 014 physically removes all eight old tables; applied migration 013 remains unchanged.
+Existing people (42), groups (12), memberships (352) remain. All 1396 original attendance rows were verified byte-for-byte as preserved. Startup added attendance records for refreshed local sessions.
+The old Backend private subject key file was removed. New separate read/write keys are private in SubjectRegistry/.local-db/service-config.json and never sent to browsers.
+
+BEHAVIOR
+Subject Finder, Attendance and Parent & Child/Pickup display Got you, Olivia using an independent registry HTTP API and real Python SFace recognition.
+Controlled photo-fed camera screenshots show all three results. This is photo-based recognition evidence, not a live webcam/person trial.
+Working local API matched Olivia's original photo; Anthony, Leo and Rebbeca original photos returned no verified subject match.
+Isolated browser tests verify external API key upsert, retry identity preservation, physical DELETE, face reference removal, unknown result after Olivia deletion, app scope revocation and invalid key rejection.
+Parent & Child uses its existing live banner; configured pickup demo participant names belong to separate local pickup rules and are not SubjectRegistry entries.
+API outage fails closed; no Attendance DB fallback or local subject mirror exists.
+
+TESTS
+Backend: 127 pass, 0 fail, 1 native Timescale test skipped.
+Frontend: 109 pass, 0 fail.
+SubjectRegistry: 4 pass, 0 fail.
+Subject worker tests: 6 pass.
+Browser integration: passed all three apps, real MediaRecorder upload/finalize and independent API mutation/delete scenarios.
+Screenshots inspected: subject-finder-olivia.png, attendance-olivia.png, parent-child-olivia.png.
+
+LIMITS
+Local services are running. Public Internet/HTTPS hosting and production PostgreSQL provisioning have not been deployed or verified. Code supports separate PostgreSQL configuration and rejects a registry database containing the attendance schema.
+External write endpoint: PUT/PATCH /api/subjects/external/:externalId; DELETE physically removes it. Use the registry write key in X-API-Key. Read keys are separate and cannot write.
+See SUBJECTS_API.md and SubjectRegistry/README.md for integration and deployment configuration.

@@ -1,0 +1,23 @@
+Pickup single-person exit block — RunPod — 2026-10-10
+
+User-confirmed problem: when Rebbeca was alone, the UI disclosed the missing participant's name and showed Waiting. The correct outcome is Cannot exit alone.
+
+Changes:
+All one-identity frames are blocked on the server with reason Cannot exit alone, including Rebbeca, Anthony, Leo and a recognized unconfigured identity. Empty frames do not disclose a missing participant identity. Unknown/duplicate/overcrowded frames retain their existing blocking rules.
+A solo frame cannot create a manual approval request and invalidates a previous pair's pending/approved observation. Manual approval actions require a current verified pair.
+Both single-person UI status locations show Cannot exit alone, with Blocked in the decision area. No absent participant's name or invitation to fetch an expected person is disclosed.
+Single-person request cards do not show an approval button, including old API data claiming canApprove. Static single-person rules also say Cannot exit alone.
+Got you recognition and the prominent external SubjectRegistry alert remain working independently.
+
+Tests:
+Backend unit/API: 32 passed. Frontend: 115 passed.
+Live public RunPod API with original saved photos: Rebbeca, Anthony and Leo each blocked, no manual request or approvable request.
+Live controlled Rebbeca photo-fed camera: Got you, Rebbeca still visible, both pickup status areas show Cannot exit alone, no approval button. No browser page errors.
+Screenshot visually inspected: rebbeca-alone-viewport.png. Full page: rebbeca-alone-blocked.png.
+This was a saved-photo camera test, not a live physical webcam/person trial. The software demo does not control physical doors.
+
+Deployment:
+https://lls3utct362n0w-8888.proxy.runpod.net/parent-child.html
+Backup: /opt/presence-solo-block-backup-20261011-005123
+Only the pickup policy, pickup UI script and single-person rule text were changed; SubjectRegistry data remains Olivia + Rebbeca.
+Open pages need one refresh to load pickup-demo.js?v=solo-exit-block-1.

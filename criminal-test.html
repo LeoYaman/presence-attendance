@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="tr">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Kriminal Detection · Backend Test</title>
+  <title>Incident Detection · Backend Test</title>
   <script src="/demo-alerts.js" defer></script>
   <style>
     body{font:16px system-ui,sans-serif;background:#f4f6f8;color:#202938;margin:0;padding:24px}
@@ -17,25 +17,25 @@
   </style>
 </head>
 <body><main>
-  <h1>Kriminal Detection · Backend Test</h1>
-  <p>Mevcut dynamic data bağlantısını kullanan sade test ekranı.</p>
-  <aside>Test verileri kurgusaldır. Sonuç simülasyondur; gerçek tespit veya bildirim yapılmaz.</aside>
-  <p id="account">Oturum kontrol ediliyor…</p>
-  <a href="/login.html">Giriş yap</a>
-  <button id="refresh" type="button" disabled>Verileri yenile</button>
-  <p id="status" role="status" aria-live="polite">Bağlanıyor…</p>
+  <h1>Incident Detection · Backend Test</h1>
+  <p>A simple test screen using the existing dynamic data connection.</p>
+  <aside>Test data is fictional. Results are simulated; no real detection or notification occurs.</aside>
+  <p id="account">Checking session…</p>
+  <a href="/login.html">Sign in</a>
+  <button id="refresh" type="button" disabled>Refresh data</button>
+  <p id="status" role="status" aria-live="polite">Connecting…</p>
   <p id="source-status" role="status" hidden></p>
   <section>
-    <label for="record">Veritabanından test kaydı seç</label>
-    <select id="record" disabled><option value="">Kayıt seç</option></select>
-    <p id="count">Veri bekleniyor.</p>
-    <dl><dt>Ad</dt><dd id="record-name">—</dd><dt>Senaryo</dt><dd id="record-scenario">—</dd></dl>
-    <button id="simulate" class="primary" type="button" disabled>Testi çalıştır</button>
+    <label for="record">Select a test record from the database</label>
+    <select id="record" disabled><option value="">Select a record</option></select>
+    <p id="count">Waiting for data.</p>
+    <dl><dt>Name</dt><dd id="record-name">—</dd><dt>Scenario</dt><dd id="record-scenario">—</dd></dl>
+    <button id="simulate" class="primary" type="button" disabled>Run test</button>
   </section>
   <section aria-live="polite">
-    <h2 id="result-heading">Sonuç</h2>
-    <p id="result-message">Kayıt seçip testi çalıştır.</p>
-    <small>Simülasyon sonucu. Gerçek bildirim gönderilmez.</small>
+    <h2 id="result-heading">Result</h2>
+    <p id="result-message">Select a record and run the test.</p>
+    <small>Simulated result. No real notification will be sent.</small>
   </section>
 </main></body>
 </html>

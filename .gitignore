@@ -16,3 +16,5 @@ node_modules/
 .tmp/
 .recording-test-*/
 *.log
+SubjectRegistry/.local-db/
+SubjectRegistry/.test-db-*/

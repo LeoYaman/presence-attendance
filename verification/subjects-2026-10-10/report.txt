@@ -1,0 +1,36 @@
+Shared Subjects implementation and verification - 2026-10-10
+
+Implemented and installed locally:
+- Migration 013 adds canonical subjects, application access, person links, persistent face references, source-scoped API keys, catalog version and append-only synchronization audit.
+- Existing Anthony, Leo, Olivia and Rebbeca references were imported without changing attendance history.
+- External PUT/PATCH /api/subjects/external/:externalId and POST /api/subjects/external/:externalId/references use X-API-Key. Browser list/detection retain authentication, Origin and CSRF checks.
+- Subject Finder, Attendance and Parent & Child show a separate shared list, refresh it every five seconds, and show Got you only for an authorized server-confirmed identity in that list.
+- Parent & Child identity matching does not verify a parent-child relationship or authorize pickup. Existing sample pickup records remain sample data.
+- Shared detection does not create attendance records. The existing Attendance SFace/check-in workflow continues under its existing course/session rules.
+
+Verification:
+- Complete backend regression: 94 passed, 0 failed, 1 native Timescale test skipped. See backend-tests.log. Focused Subjects API tests: 5 passed, including key revocation during photo validation causing rollback and source permission removal invalidating in-flight matches.
+- Frontend: 81 passed, 0 failed. See frontend-tests.log.
+- Python face worker: 31 passed, including real Olivia photo, malformed JPEG, blank/multiple-face reference rejection and removal-to-unknown behavior.
+- Browser: actual HTTP API, isolated PGlite DB and local Python SFace worker. No mocked detection responses. A controlled camera stream was generated from Olivia's saved reference photograph; this is not live-webcam verification or an independent biometric accuracy measurement.
+- Olivia produced Got you, Olivia in all three applications. See subject-finder-olivia.png, attendance-olivia.png, parent-child-olivia.png.
+- API key addition/update reused the same subject ID and appeared on all three already-open pages without restart. See api-updated-list.png.
+- API deactivation removed the subject from all pages. Deactivating existing Olivia made the same photo-fed camera unknown with no Got you. See olivia-deactivated.png.
+- Invalid key returned 401; revoked key during validation wrote no subject or catalog version.
+- Source permission change atomically increments the catalog version. Key rotation preserves existing permissions unless explicitly changed. A pending recognition result for removed app access returns no identity. Browser verification confirmed Attendance/Parent & Child lists clear while Subject Finder retains permitted records. See source-permission-revoked.png.
+- Independent review identified two recording races: early stop finalized before creation returned an ID, and an initial context poll could stop a recording even though its active course had not changed. Both were fixed and regression tested (11 recording-client tests). The browser test now requires real HTTP create/chunk/finalize success, an empty recording error panel, and continuous capture until camera stop; it no longer relies only on pageerror detection.
+- Installed local database and saved key checked separately without writing test subjects or printing the key.
+
+Local access:
+http://localhost:3000/criminal-detection.html
+http://localhost:3000/index.html
+http://localhost:3000/parent-child.html
+
+Local API key: Backend/.local-db/subjects-external-key.json (private, Git ignored, not served). It belongs to existing-team; existing Olivia is updated at /api/subjects/external/team_olivia. Do not create a second Olivia with the same photo under a different source/ID; competing identities deliberately remain unknown.
+Database backup: Backend/.local-db/backups/before-subjects-20261010.tar.
+The local PGlite demo uses demo authentication and loopback transport. No production HTTPS deployment, public internet endpoint, RunPod update or native cloud/Timescale migration was performed.
+
+Reproduce the browser verification from the repository root:
+face_data/.venv/Scripts/python.exe tests/generate-subject-camera.py
+node tests/subjects-browser-check.mjs
+The test needs Playwright resolvable from Node, or PLAYWRIGHT_MODULE_PATH pointing to the installed Playwright package directory. Models and authorized team reference photos must already exist. The test creates isolated in-memory DB data and separate .tmp recording storage; it does not change the installed database.

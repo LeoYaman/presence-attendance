@@ -133,6 +133,10 @@ async function finish(session) {
   if (session.finishing) return session.finishing;
   session.finishing = (async () => {
     try {
+      // A recorder can stop before it emits its first chunk. In that case the
+      // queue is already resolved, so wait for the create request explicitly.
+      await session.created;
+      if (!session.recordingId) throw new Error('The recording could not be created.');
       await session.queue;
       if (session.failed) throw session.failed;
       const result = await api().recordingRequest(`/recordings/${urlId(session.recordingId)}/finish`, { method: 'POST', body: { endedAt: session.endedAt || new Date().toISOString() } });
@@ -249,9 +253,9 @@ function pollContext() {
     if (ctx.teacher) refreshList(ctx.groupId); else refreshList(null);
   }
   currentGroup = String(ctx.groupId || ''); currentTeacher = !!ctx.teacher;
-  if (active && (ctx.mode !== 'live' || !ctx.teacher || groupChanged || String(ctx.groupId) !== String(active.groupId))) {
+  if (active && (ctx.mode !== 'live' || !ctx.teacher || String(ctx.groupId) !== String(active.groupId))) {
     const old = active;
-    if (!old.transition) old.transition = stop(old, groupChanged ? 'Course changed' : 'Camera context changed');
+    if (!old.transition) old.transition = stop(old, String(ctx.groupId) !== String(active.groupId) ? 'Course changed' : 'Camera context changed');
   }
   if (active && active.recorder?.state === 'recording') {
     const elapsed = Math.max(0, Date.now() - Date.parse(active.startedAt));

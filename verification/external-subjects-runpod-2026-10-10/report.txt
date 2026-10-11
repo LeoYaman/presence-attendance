@@ -1,0 +1,34 @@
+RunPod independent Subjects deployment — 2026-10-10
+
+LIVE URL
+https://lls3utct362n0w-8888.proxy.runpod.net
+HTTPS registry API prefix: /api/subject-registry
+External writer: PUT/PATCH /api/subject-registry/subjects/external/:externalId
+Reader catalog: GET /api/subject-registry/subjects?app=subject-finder|attendance|parent-child
+Detection: POST /api/subject-registry/subjects/detect
+All registry calls require their appropriate X-API-Key. Read credentials cannot write; anonymous access is denied.
+Private read/write keys were generated on RunPod and remain at /opt/presence-attendance/SubjectRegistry/.local-db/service-config.json. No raw keys were downloaded or shown.
+
+DEPLOYED STATE
+Separate registry process: node SubjectRegistry/scripts/start.mjs, loopback port 3002.
+Application process: node scripts/runpod-runtime.mjs, port 8888.
+The registry runs an independent physical PGlite DB in SubjectRegistry/.local-db/pgdata; existing Attendance DB remains in Backend/.runpod/pgdata. Managed PostgreSQL and native Timescale are not claimed.
+Exactly Olivia and Anthony exist in the separate registry, each with a validated face photo. Both use their existing local canonical UUIDs for optional identity mapping.
+Migration 014 physically removed all eight former Attendance subject tables. The existing applied migration 013 is unchanged.
+A read-only snapshot comparison before browser tests verified all existing people and every attendance row were preserved exactly.
+Backup: /opt/presence-external-registry-backup-20261011-001904 (source, database, UI files).
+Subject Finder and Attendance retained their existing live page content; the common registry camera component was added. Pickup rules remain based on local configured participants, independently of external target alerts.
+The previously tested recording-client start/finish and group-transition fix was also deployed to avoid the early camera recording race.
+
+VERIFICATION
+Public HTTPS registry: anonymous 401, reader write denied, writer PATCH succeeded, catalog exactly Anthony/Olivia for all three apps.
+Real RunPod Python SFace: both original photos matched in each of the three app scopes over HTTPS.
+Authenticated browser with controlled photo-fed camera: Got you, Olivia and Got you, Anthony visible in Subject Finder, Attendance and Parent & Child/Pickup (six screenshots).
+Browser page errors: none in successful verification.
+Private registry config, backend credentials and server source paths return 404.
+Frontend regression tests: 109 passed. Focused Subject/Pickup backend tests: 37 passed. Recording client tests: 11 passed.
+Evidence: api-db-proof.json, browser-evidence.json, six app/person screenshots and test logs in this folder.
+
+LIMITATIONS
+Face verification used saved photos through a controlled camera feed; it was not a live physical webcam/person trial. Existing demo pickup approvals are separate from Got you target alerts.
+Registry data is durable across service restart in the pod filesystem. Pod deletion/recreation and persistent-volume recovery were not tested; keep the generated private keys and database snapshots in a durable deployment backup.

@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="description" content="Recognize enrolled passengers from a live camera. Criminal status requires verified records.">
+  <meta name="description" content="Find registered subjects with server-verified camera matching.">
   <meta name="theme-color" content="#000000">
-  <title>Criminal Detection · Presence</title>
+  <title>Subject Finder · Presence</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Arvo:wght@400;700&family=Montserrat:wght@400;500;600;700&family=Oswald:wght@500;600&family=Roboto+Mono:wght@400;500&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
@@ -13,18 +13,16 @@
   <link rel="stylesheet" href="usecase-workspace.css?v=airline-layout-3">
   <link rel="stylesheet" href="neutral-theme.css?v=airline-layout-1">
 </head>
-<body class="parent-child-page criminal-page">
+<body class="parent-child-page criminal-page" data-subjects-app="subject-finder">
 <a class="skip-link" href="#workspace">Skip to workspace</a>
 
 
 <main>
-<section class="summary-band"><div class="summary"><p class="parent-school-title">Horizon Airways</p><div><h1 class="headline">Criminal Detection</h1><p class="sub">A camera and case-review workspace. Identity and criminal status require verified records.</p></div></div></section>
+<section class="summary-band"><div class="summary"><p class="parent-school-title">Presence</p><div><h1 class="headline">Subject Finder</h1><p class="sub">Find registered subjects through server-verified identity matching.</p></div></div></section>
 <div class="workspace" id="workspace">
 <section class="camera-col" aria-label="Camera workspace">
 <figure class="camera"><video id="workspace-video" autoplay muted playsinline aria-label="Camera preview"></video><div class="camera__bar"><span id="camera-state-text">Camera off</span></div><figcaption class="workspace-camera-caption">Live preview</figcaption></figure>
 <div class="workspace-camera-actions"><button type="button" class="button" id="start-camera">Start camera</button><button type="button" class="button button--secondary" id="stop-camera" disabled>Stop camera</button></div>
-<section class="match"><div><h2 class="match__name">Passenger recognition</h2><p class="match__note" id="passenger-reference-status">Loading enrolled passenger references. Passenger recognition does not determine criminal status.</p></div></section>
 </section>
-<section class="roster usecase-roster" aria-labelledby="roster-title"><div class="roster__head"><h2 class="roster__title" id="roster-title">Detected passengers</h2></div><div class="roster__tools"><label class="sr-only" for="workspace-search">Search passengers</label><input class="field" type="search" id="workspace-search" placeholder="Search passengers"></div><ul class="students" id="workspace-records" aria-live="polite" aria-relevant="additions text"><li class="usecase-empty"><h3>No current passenger matches</h3><p>Sign in and start the camera to recognize enrolled passengers.</p></li></ul><p class="workspace-feedback" id="workspace-status" role="status">Checking passenger recognition…</p></section>
-</div></main><script src="usecase-workspace.js" defer></script><script src="passenger-camera.js" defer></script>
+</div></main><script src="usecase-workspace.js" defer></script><script src="subjects-camera.js" defer></script>
 </body></html>

@@ -1,0 +1,26 @@
+[
+  {
+    "role": "Professor",
+    "url": "https://lls3utct362n0w-8888.proxy.runpod.net/index.html",
+    "sessionStatus": 200,
+    "errors": []
+  },
+  {
+    "role": "Student",
+    "url": "https://lls3utct362n0w-8888.proxy.runpod.net/student.html?demo=1",
+    "sessionStatus": 200,
+    "errors": []
+  },
+  {
+    "role": "Faculty",
+    "url": "https://lls3utct362n0w-8888.proxy.runpod.net/parent-child.html",
+    "sessionStatus": 200,
+    "errors": []
+  },
+  {
+    "role": "Security",
+    "url": "https://lls3utct362n0w-8888.proxy.runpod.net/criminal-detection.html",
+    "sessionStatus": 200,
+    "errors": []
+  }
+]

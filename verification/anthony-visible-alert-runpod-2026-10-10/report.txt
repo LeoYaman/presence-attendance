@@ -1,0 +1,22 @@
+Anthony visible alert fix — RunPod — 2026-10-10
+
+Confirmed user symptom: Anthony was recognized but there was no prominent warning. Previous Got you text was a result section beneath the camera and below the Attendance recording panels, not a global attention alert.
+
+Fix deployed to current RunPod:
+- A fixed amber REGISTERED SUBJECT DETECTED alert with large Got you, Anthony text appears at the top of the viewport in Subject Finder, Attendance and Pickup.
+- Only a server-verified ID/name present in the current external registry can trigger it.
+- The alert clears on camera stop, unknown recognition, API failure or removal from the registry.
+- External subject recognition displays before the local pickup decision. A pickup decision failure reports its own error and cannot suppress the target alert.
+- Anthony-only approvable Pickup requests now show the existing prominent manual-review attention banner. No approval is automatic merely because Anthony is recognized.
+- Updated live HTML script URLs to v=anthony-alert-1; currently open tabs need one reload to load the new script.
+- No recognition thresholds were lowered, no DB was changed by the UI fix, no email or notification service was added.
+
+Validation:
+Frontend tests: 115 passed, zero failures. Tests cover all three alert states, unverified identities, stop clearing, pickup failure independence, and the single-person manual-review banner.
+Live RunPod controlled photo-fed camera: Anthony recognized through the real remote API/Python SFace and the fixed alert was within the visible viewport on all three pages; camera stop hid it on each page. No browser page errors.
+Viewport and full-page screenshots saved for all three pages and visually inspected.
+This validates a saved photo camera feed, not an in-person physical webcam trial.
+
+Live origin: https://lls3utct362n0w-8888.proxy.runpod.net
+Backup: /opt/presence-anthony-alert-backup-20261011-002940
+Evidence: browser-evidence.json, frontend-tests.log, subject-finder-alert-viewport.png, attendance-alert-viewport.png, parent-child-alert-viewport.png.

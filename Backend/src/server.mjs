@@ -11,6 +11,8 @@ import { createFaceWorker } from './face-worker.mjs';
 import { createRecordingStore } from './recording-store.mjs';
 import { createAdminApi } from './admin.mjs';
 import { createPassengerApi } from './passengers.mjs';
+import { createSubjectsApi } from './subjects.mjs';
+import { createPickupDemo } from './pickup-demo.mjs';
 import demoCatalog from '../../assets/demo-catalog.json' with { type: 'json' };
 
 export class HttpError extends Error {
@@ -54,7 +56,7 @@ WHERE s.status='closed' AND s.starts_at<=now()
 GROUP BY bucket ORDER BY bucket`;
 
 export function createApp({ pool, publicOrigin = 'http://localhost:3000', secureCookies = false,
-  syntheticCamera = false, demoAlerts = null, frontendRoot = new URL('../../',import.meta.url), recognitionAdapter = syntheticRecognition, faceWorker = createFaceWorker(), recordingStore = createRecordingStore() } = {}) {
+  syntheticCamera = false, demoAlerts = null, pickupSettings, pickupMailer, subjectRegistry, frontendRoot = new URL('../../',import.meta.url), recognitionAdapter = syntheticRecognition, faceWorker = createFaceWorker(), recordingStore = createRecordingStore() } = {}) {
   if (!pool) throw new Error('A database pool is required');
   const origin = new URL(publicOrigin).origin;
   if (secureCookies && !origin.startsWith('https://')) throw new Error('Secure cookies require an HTTPS PUBLIC_ORIGIN');
@@ -63,14 +65,52 @@ export function createApp({ pool, publicOrigin = 'http://localhost:3000', secure
   const adminApi = createAdminApi({pool,fail,uuid,timestamp,fields,recordingStore});
   const teamDemo=createTeamDemo({pool,faceWorker,fail,fields,enabled:syntheticCamera});
   const passengerApi = createPassengerApi({pool,faceWorker,fail,fields});
+  const subjectsApi = createSubjectsApi({pool,subjectRegistry,fail,fields,uuid});
+  const pickupDemo = createPickupDemo({settings:pickupSettings,sendMail:pickupMailer,origin,fail,fields,
+    recognize:async(user,image)=>{
+      const configured=pickupSettings?.configuration;
+      const configuredPeople=[
+        {id:configured?.leoId,name:'Leo',referenceKey:'team_leo'},
+        {id:configured?.rebecaId,name:'Rebbeca',referenceKey:'team_rebbeca'},
+        {id:configured?.anthonyId,name:'Anthony',referenceKey:'team_anthony'}
+      ];
+      const ids=configuredPeople.map(person=>person.id);
+      const rows=(await pool.query(`SELECT r.reference_key,r.person_id,p.full_name
+        FROM attendance.team_face_references r
+        JOIN attendance.people p ON p.id=r.person_id
+        JOIN attendance.groups g ON g.id=r.group_id
+        WHERE r.is_active AND p.is_active AND g.is_active AND r.person_id=ANY($1::uuid[])
+        ORDER BY r.reference_key`,[ids])).rows;
+      const references=configuredPeople.map(person=>rows.find(row=>row.person_id===person.id&&
+        row.reference_key===person.referenceKey&&row.full_name===person.name));
+      if(references.some(reference=>!reference)) fail(503,'pickup_references_unavailable','Configured pickup references are unavailable');
+      let result;
+      try {
+        result=await faceWorker.request({action:'detect',groupId:'pickup-demo',image,
+          allowedIds:ids,referenceMappings:references.map(reference=>({referenceKey:reference.reference_key,personId:reference.person_id}))});
+      } catch(error) { fail(error.status||503,error.code||'face_service_unavailable',error.message||'Face service unavailable'); }
+      if(!Array.isArray(result?.matches)||result.registeredReferences!==references.length)
+        fail(503,'face_service_unavailable','Saved pickup recognition is unavailable');
+      const peopleByReference=new Map(references.map(reference=>[reference.reference_key,
+        configuredPeople.find(person=>person.id===reference.person_id)]));
+      return {registeredReferences:result.registeredReferences,matches:result.matches.map(match=>{
+        const person=match?.identityMatched===true?peopleByReference.get(match.referenceKey):null;
+        const validPerson=person&&person.id===match.studentId?person:null;
+        const box=match?.box;
+        const validBox=box&&['x','y','width','height'].every(key=>typeof box[key]==='number'&&Number.isFinite(box[key])&&box[key]>=0&&box[key]<=1);
+        return {subjectId:validPerson?.id??null,personId:validPerson?.id??null,name:validPerson?.name??null,
+          identityMatched:Boolean(validPerson),box:validBox?{x:box.x,y:box.y,width:box.width,height:box.height}:null,
+          similarity:typeof match?.similarity==='number'&&Number.isFinite(match.similarity)?match.similarity:null};
+      })};
+    }});
   const staticFiles = new Map([['/', ['index.html','text/html; charset=utf-8']], ['/index.html',['index.html','text/html; charset=utf-8']],
     ['/app.js',['app.js','text/javascript; charset=utf-8']], ['/camera-client.js',['camera-client.js','text/javascript; charset=utf-8']], ['/recording-client.js',['recording-client.js','text/javascript; charset=utf-8']], ['/styles.css',['styles.css','text/css; charset=utf-8']]]);
   // Publish only the UI files; credentials, datasets and backend source stay private.
   const uiFiles = {
     'text/html; charset=utf-8': ['team-demo.html','criminal-detection.html','criminal-test.html','parent-child.html','login.html','student.html',
       'Frontend/Studentpage/index.html','Frontend/Teacherpage/index.html','teacherPortal/index.html'],
-    'text/css; charset=utf-8': ['team-demo.css','usecase-workspace.css','neutral-theme.css','login.css','student.css','Frontend/Studentpage/styles.css','Frontend/Teacherpage/styles.css','teacherPortal/styles.css'],
-    'text/javascript; charset=utf-8': ['team-demo.js','criminal-data.js','usecase-workspace.js','passenger-camera.js','login.js','student.js','customize.js','Frontend/Studentpage/student.js','Frontend/Studentpage/customize.js','teacherPortal/app.js'],
+    'text/css; charset=utf-8': ['team-demo.css','pickup-requests.css','usecase-navigation.css','usecase-workspace.css','neutral-theme.css','login.css','student.css','Frontend/Studentpage/styles.css','Frontend/Teacherpage/styles.css','teacherPortal/styles.css'],
+    'text/javascript; charset=utf-8': ['team-demo.js','pickup-demo.js','subjects-camera.js','criminal-data.js','usecase-workspace.js','passenger-camera.js','login.js','student.js','customize.js','Frontend/Studentpage/student.js','Frontend/Studentpage/customize.js','teacherPortal/app.js'],
     'image/png': ['ucf-logo.png','ucf-header-logo.png','fullsail-logo.png','fullsail-logo-white.png','fullsail-header-light.png','fullsail-header-dark.png',
       'assets/ucf-logo.png','assets/fullsail-logo.png','assets/fullsail-logo-white.png']
   };
@@ -134,11 +174,14 @@ export function createApp({ pool, publicOrigin = 'http://localhost:3000', secure
       const bytes = await readFile(new URL(name,frontendRoot));
       res.writeHead(200,{'Content-Type':type,'Cache-Control':'no-cache'}); res.end(method === 'HEAD' ? undefined : bytes); return;
     }
-    if (url.search && !path.startsWith('/api/admin/')) fail(400,'unsupported_query','Query parameters are unsupported');
+    if(path.startsWith('/api/subjects/external/')) {
+      fail(404,'not_found','Route not found');
+    }
+    if (url.search && path!=='/api/subjects' && !path.startsWith('/api/admin/')) fail(400,'unsupported_query','Query parameters are unsupported');
     const recordingChunkRoute=path.match(/^\/api\/recordings\/([^/]+)\/chunks\/(\d+)$/);
     if (!['GET','POST'].includes(method) && !(method==='PUT'&&recordingChunkRoute)) fail(405,'method_not_allowed','Method not allowed');
     if (['POST','PUT'].includes(method) && req.headers.origin !== origin) fail(403,'invalid_origin','Request must come from this application');
-    const body = method === 'POST' ? await readBody(req, (path.startsWith('/api/team-demo/')||path==='/api/passengers/detect'||/^\/api\/groups\/[^/]+\/faces\/(detect|enroll)$/.test(path)) ? 400000 : 8192) : null;
+    const body = method === 'POST' ? await readBody(req, (path.startsWith('/api/team-demo/')||path==='/api/pickup-demo/decide'||path==='/api/subjects/detect'||path==='/api/passengers/detect'||/^\/api\/groups\/[^/]+\/faces\/(detect|enroll)$/.test(path)) ? 400000 : 8192) : null;
     if (path === '/api/login' && method === 'POST') {
       fields(body,['email','password'],['email','password']);
       if (typeof body.email !== 'string' || body.email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email.trim()) ||
@@ -172,6 +215,8 @@ export function createApp({ pool, publicOrigin = 'http://localhost:3000', secure
     if((path==='/api/team-demo/detect' && method==='POST')||(path==='/api/team-demo/participants' && ['GET','POST'].includes(method))||(path==='/api/team-demo/participants/delete' && method==='POST')) {
       try{return await teamDemo({user,body,action:path.endsWith('/delete')?'delete':path.endsWith('/participants')?(method==='GET'?'list':'add'):'detect'});}catch(error){if(error instanceof HttpError)throw error;throw new HttpError(error.status||503,error.code||'face_service_unavailable',error.message||'Face service unavailable');}
     }
+    if (path === '/api/pickup-demo' || path.startsWith('/api/pickup-demo/')) return pickupDemo({method,path,user,body});
+    if (path === '/api/subjects' || path === '/api/subjects/detect') return subjectsApi.ui({method,path,user,body,url});
     if (path === '/api/passengers' || path === '/api/passengers/detect') return passengerApi({method,path,user,body});
     if (path === '/api/demo-alerts' || path === '/api/demo-alerts/simulate') {
       if (!['teacher','admin'].includes(user.role)) fail(403,'forbidden','This simulation requires a teacher or administrator');

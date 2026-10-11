@@ -1,0 +1,10 @@
+{
+  "mode": "disabled configuration preview; no real camera or email",
+  "checks": [
+    "authenticated local bootstrap",
+    "configuration missing fails closed",
+    "no sample confirmation buttons",
+    "no browser errors",
+    "GET demo API enabled=false"
+  ]
+}

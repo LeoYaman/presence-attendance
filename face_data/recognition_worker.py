@@ -152,6 +152,99 @@ class RecognitionWorker:
         self.models: dict[str, tuple[tuple[str, ...], dict[str, Any]]] = {}
         self.reference_recognizer: Any = None
         self.demo_features = {}
+        self.subject_engine: Any = None
+        self.subject_galleries: dict[str, Any] = {}
+
+    def _subject_engine(self) -> Any:
+        if self.subject_engine is None:
+            # Initialize models only; persistent subjects never read students.json.
+            if __package__:
+                from .recognition import ROOT, MODELS, Recognizer
+            else:
+                from recognition import ROOT, MODELS, Recognizer
+            paths = [ROOT / "models" / name for name in MODELS]
+            if not all(path.is_file() for path in paths):
+                raise RequestError("Subject recognition models are unavailable")
+            engine = Recognizer.__new__(Recognizer)
+            engine.cv2 = self.cv2
+            engine.threshold, engine.margin = 0.45, 0.06
+            engine.detector = self.cv2.FaceDetectorYN.create(str(paths[0]), "", (320, 320), 0.85, 0.3, 5000)
+            engine.model = self.cv2.FaceRecognizerSF.create(str(paths[1]), "")
+            self.subject_engine = engine
+        return self.subject_engine
+
+    def _detect_subjects(self, frame: Any, request: dict[str, Any], allowed: set[str], group_id: str) -> dict[str, Any]:
+        references = request.get("subjectReferences")
+        if not isinstance(references, list) or len(references) > MAX_REFERENCE_MAPPINGS:
+            raise RequestError("subjectReferences must contain at most 100 references")
+        version = request.get("subjectsVersion")
+        if not isinstance(version, (str, int)) or isinstance(version, bool) or len(str(version)) > 200:
+            raise RequestError("subjectsVersion must be a bounded string or integer")
+        seen = set()
+        for reference in references:
+            if not isinstance(reference, dict) or set(reference) != {"subjectId", "referenceId", "image"}:
+                raise RequestError("subjectReferences entries require subjectId, referenceId and image")
+            if reference["subjectId"] not in allowed:
+                raise RequestError("subject reference must be in allowedIds")
+            identifier = reference["referenceId"]
+            if not isinstance(identifier, str) or not identifier or len(identifier) > 200 or identifier in seen:
+                raise RequestError("subject reference IDs must be unique bounded strings")
+            seen.add(identifier)
+            value = reference["image"]
+            if not isinstance(value, str) or len(value) > MAX_IMAGE_BYTES * 4 // 3 + 16:
+                raise RequestError("subject reference image exceeds the size limit")
+        if sum(len(item["image"]) for item in references) > 16 * 1024 * 1024:
+            raise RequestError("subject references exceed aggregate size limit")
+        # Include content and allow-list in the cache key as defense against stale
+        # versions; never retain raw JPEG bytes after computing their features.
+        digest = hashlib.sha256(json.dumps([version, sorted(allowed), references], sort_keys=True).encode()).hexdigest()
+        engine = self._subject_engine()
+        cached = self.subject_galleries.get(group_id)
+        if not cached or cached[0] != digest:
+            gallery = []
+            for reference in references:
+                image, _ = _decode_image(reference["image"], self.cv2)
+                faces = engine.detect(image)
+                if (len(faces) != 1 or len(faces[0]) < 15 or
+                        not all(_finite_number(value) for value in faces[0]) or
+                        min(faces[0][2:4]) < MIN_FACE_EDGE or float(faces[0][-1]) < MIN_DETECTION_SCORE):
+                    raise RequestError("subject reference requires exactly one confident face at least 80px wide and high")
+                gallery.append((reference["subjectId"], reference["referenceId"], engine.feature(image, faces[0])))
+            if group_id not in self.subject_galleries and len(self.subject_galleries) >= MAX_GROUPS:
+                self.subject_galleries.pop(next(iter(self.subject_galleries)))
+            self.subject_galleries[group_id] = (digest, gallery)
+        gallery = self.subject_galleries[group_id][1]
+        height, width = frame.shape[:2]
+        matches = []
+        for face in engine.detect(frame):
+            if len(face) < 15 or not all(_finite_number(value) for value in face):
+                continue
+            x, y, w, h = map(float, face[:4])
+            x0, y0 = max(0.0, x), max(0.0, y)
+            x1, y1 = min(float(width), x + w), min(float(height), y + h)
+            if x1 <= x0 or y1 <= y0:
+                continue
+            best_subject, best_reference, similarity = None, None, None
+            if float(face[-1]) >= MIN_DETECTION_SCORE and min(w, h) >= MIN_FACE_EDGE and gallery:
+                feature = engine.feature(frame, face)
+                by_subject = {}
+                for subject_id, reference_id, saved in gallery:
+                    score = float(engine.model.match(feature, saved, self.cv2.FaceRecognizerSF_FR_COSINE))
+                    if _finite_number(score) and (subject_id not in by_subject or score > by_subject[subject_id][0]):
+                        by_subject[subject_id] = (score, reference_id)
+                scores = sorted(by_subject.items(), key=lambda item: item[1][0], reverse=True)
+                if scores:
+                    candidate, (similarity, reference_id) = scores[0]
+                    runner_up = scores[1][1][0] if len(scores) > 1 else -1.0
+                    if similarity >= engine.threshold and similarity - runner_up + 1e-12 >= engine.margin:
+                        best_subject, best_reference = candidate, reference_id
+            matches.append({"subjectId": best_subject, "studentId": best_subject, "referenceId": best_reference,
+                            "identityMatched": best_subject is not None, "similarity": similarity,
+                            "recognitionMethod": "sface", "confidence": float(face[-1]),
+                            "box": {"x": x0 / width, "y": y0 / height,
+                                    "width": (x1 - x0) / width, "height": (y1 - y0) / height}})
+        return {"matches": matches, "registeredReferences": len(gallery), "subjectsVersion": version,
+                "sampleCounts": self._sample_counts(group_id, allowed)}
 
     def _detect_references(self, frame: Any, mappings: dict[str, str], temporary=None) -> dict[str, Any]:
         if self.reference_recognizer is None:
@@ -294,6 +387,14 @@ class RecognitionWorker:
             feature = self.reference_recognizer.feature(frame, faces[0])
             self.demo_features[(scope,person)] = (feature,now+3600)
             return {"enrolled": True}
+        if action == "validate-reference":
+            frame, _ = _decode_image(request.get("image"), self.cv2)
+            faces = self._subject_engine().detect(frame)
+            if (len(faces) != 1 or len(faces[0]) < 15 or
+                    not all(_finite_number(value) for value in faces[0]) or
+                    min(faces[0][2:4]) < MIN_FACE_EDGE or float(faces[0][-1]) < MIN_DETECTION_SCORE):
+                raise RequestError("subject reference requires exactly one confident face at least 80px wide and high")
+            return {"valid": True, "recognitionMethod": "sface"}
         if action not in {"detect", "enroll", "clear"}:
             raise RequestError("action must be detect, enroll, or clear")
         group_id = _request_scope(request)
@@ -316,6 +417,8 @@ class RecognitionWorker:
         self._prune_to_allowed(group_id, allowed)
         mappings = _reference_mappings(request, allowed) if action == "detect" else {}
         frame, raw = _decode_image(request.get("image"), self.cv2)
+        if action == "detect" and "subjectReferences" in request:
+            return self._detect_subjects(frame, request, allowed, group_id)
         temporary = {person: feature for (scope,person),(feature,expiry) in self.demo_features.items()
                      if scope == request.get("demoScope") and person in allowed}
         mappings.update({person:person for person in temporary})

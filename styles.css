@@ -376,6 +376,11 @@ a { color: inherit; text-decoration: none; }
 }
 .label { font-size: 13px; font-weight: 600; color: var(--secondary); }
 .match__name { font-family: var(--font-head); font-weight: var(--head-weight); letter-spacing: var(--head-track); font-size: 26px; line-height: 1.2; overflow-wrap: anywhere; }
+.match.subjects-panel { display: flex; flex-direction: column; gap: 20px; }
+.subjects-panel > section { min-width: 0; width: 100%; }
+.subjects-panel #subjects-list { padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; max-height: 240px; }
+.subjects-panel #subjects-list .student { min-width: 0; }
+@media (max-width: 480px) { .subjects-panel #subjects-list { grid-template-columns: minmax(0, 1fr); } }
 .match__note { margin-top: 4px; font-size: 14px; color: var(--secondary); }
 .match__score { text-align: right; }
 .match__pct { font-size: 32px; line-height: 1.1; font-weight: 500; }

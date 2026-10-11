@@ -100,6 +100,16 @@ test('course changes stop the old recording without reassigning the camera to th
   assert.equal(h.calls.filter(call => call.options.method === 'POST' && call.path.endsWith('/recordings')).length, 1);
 });
 
+test('the first poll catching up with the same course does not stop a new recording', async () => {
+  const h = harness();
+  h.ctx.groupId = null; h.poll();
+  h.ctx.groupId = 'g-1'; h.start(); await settle();
+  h.poll(); await settle();
+  assert.equal(h.calls.some(call => call.path.endsWith('/finish')), false);
+  assert.equal(h.recorderInstances[0].state, 'recording');
+  h.stop(); await settle();
+});
+
 test('a queued chunk survives stop and restart and finish uses the actual stop timestamp', async () => {
   const h = harness(), gate = {};
   gate.promise = new Promise(resolve => { gate.resolve = resolve; });
@@ -128,6 +138,18 @@ test('chunks captured while recording creation is delayed wait for and use the r
   const write = h.calls.find(call => call.options.method === 'PUT');
   assert.equal(write.path, '/recordings/r1/chunks/0');
   h.stop(); await settle();
+});
+
+test('an early stop with no chunks waits for recording creation before finalizing', async () => {
+  const h = harness(), gate = {};
+  gate.promise = new Promise(resolve => { gate.resolve = resolve; });
+  h.setCreateGate(gate); h.start(); await settle();
+  const recorder = h.recorderInstances[0];
+  recorder.stop(); await settle();
+  assert.equal(h.calls.some(call => call.path.endsWith('/finish')), false);
+  gate.resolve(); await settle();
+  const finish = h.calls.find(call => call.path.endsWith('/finish'));
+  assert.equal(finish.path, '/recordings/r1/finish');
 });
 
 test('only finished seekable recordings expose a play button and use the authenticated API video URL', async () => {

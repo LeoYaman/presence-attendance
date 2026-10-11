@@ -1,0 +1,68 @@
+{
+  "origin": "https://lls3utct362n0w-8888.proxy.runpod.net/api/subject-registry",
+  "checks": [
+    "HTTPS registry anonymous read denied",
+    "Reader cannot write",
+    "External write key PATCH works through public HTTPS",
+    "subject-finder: HTTPS real SFace matched Olivia",
+    "subject-finder: HTTPS real SFace matched Anthony",
+    "attendance: HTTPS real SFace matched Olivia",
+    "attendance: HTTPS real SFace matched Anthony",
+    "parent-child: HTTPS real SFace matched Olivia",
+    "parent-child: HTTPS real SFace matched Anthony",
+    "Separate physical DB contains exactly two subjects; legacy Attendance subject tables removed; all people and attendance rows preserved"
+  ],
+  "catalogs": {
+    "subject-finder": {
+      "version": 4,
+      "subjects": [
+        {
+          "id": "f3102026-0000-4000-8000-000000000100",
+          "name": "Anthony",
+          "externalId": "team_anthony",
+          "referenceCount": 1
+        },
+        {
+          "id": "f3102026-0000-4000-8000-000000000103",
+          "name": "Olivia",
+          "externalId": "team_olivia",
+          "referenceCount": 1
+        }
+      ]
+    },
+    "attendance": {
+      "version": 4,
+      "subjects": [
+        {
+          "id": "f3102026-0000-4000-8000-000000000100",
+          "name": "Anthony",
+          "externalId": "team_anthony",
+          "referenceCount": 1
+        },
+        {
+          "id": "f3102026-0000-4000-8000-000000000103",
+          "name": "Olivia",
+          "externalId": "team_olivia",
+          "referenceCount": 1
+        }
+      ]
+    },
+    "parent-child": {
+      "version": 4,
+      "subjects": [
+        {
+          "id": "f3102026-0000-4000-8000-000000000100",
+          "name": "Anthony",
+          "externalId": "team_anthony",
+          "referenceCount": 1
+        },
+        {
+          "id": "f3102026-0000-4000-8000-000000000103",
+          "name": "Olivia",
+          "externalId": "team_olivia",
+          "referenceCount": 1
+        }
+      ]
+    }
+  }
+}

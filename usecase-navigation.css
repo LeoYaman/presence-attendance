@@ -1,0 +1,6 @@
+.usecase-back-nav { max-width:1280px; margin:0 auto; padding:14px 24px; }
+.usecase-back-link { display:inline-flex; align-items:center; gap:9px; min-height:38px; padding:0 13px; border:1px solid var(--hairline); border-radius:9px; background:transparent; color:var(--secondary); font-family:Arial,sans-serif; font-size:13px; font-weight:500; line-height:1; text-decoration:none; box-shadow:none; transition:background .15s,color .15s,border-color .15s; }
+.usecase-back-link > span:first-child { font-size:18px; font-weight:400; }
+.usecase-back-link:hover { background:rgba(128,128,128,.12); color:var(--label); border-color:var(--secondary); }
+.usecase-back-link:focus-visible { outline:2px solid var(--secondary); outline-offset:3px; }
+@media(max-width:600px) { .usecase-back-nav { padding:12px 20px; } }

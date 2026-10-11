@@ -1,0 +1,18 @@
+{
+  "origin": "https://lls3utct362n0w-8888.proxy.runpod.net",
+  "camera": "controlled photo-fed camera, actual remote APIs and Python SFace",
+  "checks": [
+    "subject-finder: fixed visible alert: Got you, Anthony through real RunPod API",
+    "subject-finder: alert clears on camera stop",
+    "attendance: fixed visible alert: Got you, Anthony through real RunPod API",
+    "attendance: alert clears on camera stop",
+    "parent-child: fixed visible alert: Got you, Anthony through real RunPod API",
+    "parent-child: alert clears on camera stop",
+    "Anthony: private keys/source blocked"
+  ],
+  "screenshots": [
+    "subject-finder-anthony.png",
+    "attendance-anthony.png",
+    "parent-child-anthony.png"
+  ]
+}

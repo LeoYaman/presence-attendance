@@ -1,5 +1,9 @@
 .usecase-roster { position:static; height:auto; min-height:400px; box-shadow:0 4px 12px #0000001a; }
 .workspace-camera-actions { display:flex; gap:10px; flex-wrap:wrap; }
+.camera-selector { display:grid; gap:8px; margin:14px 0 18px; }
+.camera-selector label { font:600 13px Arial,sans-serif; color:var(--secondary); }
+.camera-selector select { width:100%; max-width:360px; padding:0 12px; }
+.camera-selector p { margin:0; font-size:12px; color:var(--secondary); }
 .workspace-camera-caption { position:absolute; inset:50% 0 auto; text-align:center; color:#aaa; pointer-events:none; }
 .camera:has(video[data-active]) .workspace-camera-caption { display:none; }
 .usecase-empty { padding:40px 20px; color:var(--secondary); text-align:center; }

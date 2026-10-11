@@ -1,0 +1,13 @@
+{
+  "origin": "https://lls3utct362n0w-8888.proxy.runpod.net",
+  "checks": [
+    "existing presentation login works; anonymous pickup API denied",
+    "pickup demo deployed; intentionally disabled; no email or exit approval",
+    "migration and registered-subject API available",
+    "live page loads registered roster; no fake confirmation or browser errors",
+    "private credentials, backend mail source and face data not publicly served"
+  ],
+  "cameraTested": false,
+  "emailSent": false,
+  "demoEnabled": false
+}

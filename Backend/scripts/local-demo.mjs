@@ -8,6 +8,7 @@ import {applyMigrations,verifySchema} from './migrations.mjs';
 import {seedDemo,demo} from './seed-demo.mjs';
 import {seedLocalCatalog} from './seed-local-catalog.mjs';
 import {createApp} from '../src/server.mjs';
+import {createSubjectRegistryClient} from '../src/subject-registry-client.mjs';
 import {createDemoAlerts} from '../src/demo-alerts.mjs';
 import {opaqueToken,tokenDigest,sessionCookie} from '../src/auth.mjs';
 
@@ -54,7 +55,7 @@ export async function openLocalDatabase(dataDir) {
     await applyMigrations(raw,{baseOnly:true});
     await raw.query('BEGIN');
     await raw.query('CREATE TABLE IF NOT EXISTS public.presence_local_migrations(name text PRIMARY KEY,checksum text NOT NULL)');
-    for (const name of ['003_attendance_events.sql','004_auth_sessions.sql','005_future_absence_reporting.sql','006_face_datasets.sql','007_team_face_references.sql','008_session_successors.sql','009_admin_management.sql','010_demo_alerts.sql','011_demo_passengers.sql','012_demo_olivia_passenger.sql']) {
+    for (const name of ['003_attendance_events.sql','004_auth_sessions.sql','005_future_absence_reporting.sql','006_face_datasets.sql','007_team_face_references.sql','008_session_successors.sql','009_admin_management.sql','010_demo_alerts.sql','011_demo_passengers.sql','012_demo_olivia_passenger.sql','013_shared_subjects.sql','014_external_subject_registry.sql']) {
       const source=await readFile(new URL('../db/migrations/'+name,import.meta.url),'utf8');
       const checksum=createHash('sha256').update(source).digest('hex');
       const prior=(await raw.query('SELECT checksum FROM public.presence_local_migrations WHERE name=$1',[name])).rows[0];
@@ -96,19 +97,27 @@ async function main(){
   const configuration=localDemoConfiguration();
   const {port,publicOrigin,secureCookies}=configuration;
   const {pool}=await openLocalDatabase(fileURLToPath(new URL('../.local-db/pgdata/',import.meta.url)));
+  let subjectRegistry;
+  try {
+    const registryConfig=JSON.parse(await readFile(new URL('../../SubjectRegistry/.local-db/service-config.json',import.meta.url),'utf8'));
+    const readKey=process.env.SUBJECT_REGISTRY_READ_KEY??registryConfig.readerKey;
+    if(typeof readKey==='string'&&readKey.length) subjectRegistry=createSubjectRegistryClient({
+      url:process.env.SUBJECT_REGISTRY_URL??'http://127.0.0.1:3002',readKey,
+    });
+  } catch(error) { if(error.code!=='ENOENT') throw error; }
   const client=await pool.connect();
   try{await client.query('BEGIN'); await seedDemo(client,opaqueToken()); await seedLocalCatalog(client,{localOnly:true}); await client.query('COMMIT');}
   catch(error){await client.query('ROLLBACK'); throw error;}finally{client.release();}
   const demoAlerts=createDemoAlerts({pool});
   await demoAlerts.start();
-  const server=createApp({pool,publicOrigin,secureCookies,syntheticCamera:true,demoAlerts});
+  const server=createApp({pool,publicOrigin,secureCookies,syntheticCamera:true,demoAlerts,subjectRegistry});
   server.on('close',()=>demoAlerts.stop());
   const handle=server.listeners('request')[0]; server.removeAllListeners('request');
   server.on('request',async(req,res)=>{
     // Fixed synthetic teacher session, gated before any route or cookie is issued.
     // Remote mode intentionally disables the localhost fallback.
     if(!authorizeLocalDemoRequest(req,configuration)){res.writeHead(403);res.end('Demo access denied');return;}
-    if(req.method==='GET' && (req.url==='/'||req.url==='/index.html'||req.url==='/team-demo.html'||req.url==='/demo-alerts.html'||req.url==='/criminal-detection.html'||req.url==='/criminal-test.html'||req.url==='/student.html?demo=1')){
+    if(req.method==='GET' && (req.url==='/'||req.url==='/index.html'||req.url==='/team-demo.html'||req.url==='/parent-child.html'||req.url==='/demo-alerts.html'||req.url==='/criminal-detection.html'||req.url==='/criminal-test.html'||req.url==='/student.html?demo=1')){
       try{
         const token=opaqueToken(); const expiry=new Date(Date.now()+8*3600000);
         await pool.query('INSERT INTO attendance.auth_sessions(token_hash,user_id,csrf_token,expires_at) VALUES($1,$2,$3,$4)',[tokenDigest(token),demo.teacherId,opaqueToken(),expiry]);

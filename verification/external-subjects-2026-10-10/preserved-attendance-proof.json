@@ -1,0 +1,15 @@
+{
+  "before": {
+    "people": 42,
+    "groups": 12,
+    "group_memberships": 352,
+    "attendance_records": 1396
+  },
+  "after": {
+    "people": 42,
+    "groups": 12,
+    "group_memberships": 352,
+    "attendance_records": 1736
+  },
+  "originalAttendanceRecordsPreserved": true
+}

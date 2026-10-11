@@ -1,0 +1,22 @@
+{
+  "environment": "isolated PGlite; real local Python SFace; controlled photo-fed camera; no route mocks",
+  "checks": [
+    "subject-finder: actual API/worker returned Olivia, UI Got you, Olivia",
+    "attendance: actual API/worker returned Olivia, UI Got you, Olivia",
+    "Attendance real MediaRecorder HTTP create/chunk/finalize all succeeded, recording error panel empty",
+    "parent-child: actual API/worker returned Olivia, UI Got you, Olivia",
+    "API key upsert without cookie/origin, same ID on retry, all three open pages refreshed without restart",
+    "API deactivation removed subject from all three open pages",
+    "API deactivated seeded Olivia: same camera photo became unknown, no Got you",
+    "Source permission revocation incremented version: Attendance and Parent & Child cleared, Subject Finder retained Olivia",
+    "Invalid API key rejected 401"
+  ],
+  "screenshots": [
+    "subject-finder-olivia.png",
+    "attendance-olivia.png",
+    "parent-child-olivia.png",
+    "api-updated-list.png",
+    "olivia-deactivated.png",
+    "source-permission-revoked.png"
+  ]
+}

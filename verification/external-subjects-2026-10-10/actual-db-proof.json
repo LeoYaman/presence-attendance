@@ -1,0 +1,51 @@
+{
+  "attendance": {
+    "subjectTables": [],
+    "people": 42
+  },
+  "registry": {
+    "subjects": [
+      {
+        "id": "f3102026-0000-4000-8000-000000000103",
+        "name": "Olivia",
+        "is_active": true
+      }
+    ],
+    "references": 1
+  },
+  "live": {
+    "subject-finder": {
+      "version": 2,
+      "subjects": [
+        {
+          "id": "f3102026-0000-4000-8000-000000000103",
+          "name": "Olivia",
+          "externalId": "team_olivia",
+          "referenceCount": 1
+        }
+      ]
+    },
+    "attendance": {
+      "version": 2,
+      "subjects": [
+        {
+          "id": "f3102026-0000-4000-8000-000000000103",
+          "name": "Olivia",
+          "externalId": "team_olivia",
+          "referenceCount": 1
+        }
+      ]
+    },
+    "parent-child": {
+      "version": 2,
+      "subjects": [
+        {
+          "id": "f3102026-0000-4000-8000-000000000103",
+          "name": "Olivia",
+          "externalId": "team_olivia",
+          "referenceCount": 1
+        }
+      ]
+    }
+  }
+}

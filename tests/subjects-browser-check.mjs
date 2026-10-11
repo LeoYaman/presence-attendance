@@ -1,0 +1,113 @@
+import assert from 'node:assert/strict';
+import {readFile,mkdir,writeFile} from 'node:fs/promises';
+import {fileURLToPath} from 'node:url';
+import {randomBytes} from 'node:crypto';
+import {localDatabase} from '../Backend/tests/local-fixture.mjs';
+import {seedDemo,demo} from '../Backend/scripts/seed-demo.mjs';
+import {seedLocalCatalog} from '../Backend/scripts/seed-local-catalog.mjs';
+import {loadTeamReferenceManifest,importTeamReferences} from '../Backend/scripts/import-team-references.mjs';
+import {openRegistryDatabase} from '../SubjectRegistry/src/database.mjs';
+import {provisionSubjectKey,provisionReaderKey,seedOlivia} from '../SubjectRegistry/src/subjects.mjs';
+import {createRegistryServer} from '../SubjectRegistry/src/server.mjs';
+import {createSubjectRegistryClient} from '../Backend/src/subject-registry-client.mjs';
+import {createApp} from '../Backend/src/server.mjs';
+import {createFaceWorker} from '../Backend/src/face-worker.mjs';
+import {createRecordingStore} from '../Backend/src/recording-store.mjs';
+import {createRequire} from 'node:module';
+const {chromium}=createRequire(import.meta.url)(process.env.PLAYWRIGHT_MODULE_PATH || 'playwright');
+const {pool,db,engine}=await localDatabase();
+const password=randomBytes(24).toString('hex');
+const reportDir=new URL('../verification/external-subjects-2026-10-10/',import.meta.url);
+await mkdir(reportDir,{recursive:true});
+const evidence={environment:'separate Attendance and SubjectRegistry DBs + HTTP services; real local Python SFace; controlled photo-fed camera; no route mocks',checks:[],screenshots:[]};
+const worker=createFaceWorker({timeout:60000});
+const registryWorker=createFaceWorker({timeout:60000});
+const registry=await openRegistryDatabase(fileURLToPath(new URL('../.tmp/registry-browser-'+Date.now()+'/',import.meta.url)));
+let server,browser,registryServer;
+try {
+ await db.query('BEGIN'); await seedDemo(db,password); await db.query('COMMIT');
+ await importTeamReferences(pool,await loadTeamReferenceManifest());
+ await db.query('BEGIN');await seedLocalCatalog(db,{localOnly:true});await db.query('COMMIT');
+ assert.equal((await db.query("SELECT to_regclass('attendance.subjects') AS old")).rows[0].old,null);
+ const {key}=await provisionSubjectKey(registry.pool,{name:'olivia-source'});
+ const {key:readerKey}=await provisionReaderKey(registry.pool);
+ const oliviaImage=(await readFile(new URL('../face_data/people_faces/WIN_20261010_00_52_47_Pro.jpg',import.meta.url))).toString('base64');
+ await seedOlivia(registry.pool,{faceWorker:registryWorker,image:oliviaImage,subjectId:'f3102026-0000-4000-8000-000000000103',writeKey:key});
+ assert.deepEqual((await registry.pool.query('SELECT name FROM registry.subjects ORDER BY name')).rows.map(s=>s.name),['Olivia']);
+ const registryOrigin='http://127.0.0.1:18770';
+ registryServer=createRegistryServer({pool:registry.pool,faceWorker:registryWorker});
+ await new Promise(r=>registryServer.listen(18770,'127.0.0.1',r));
+ const subjectRegistry=createSubjectRegistryClient({url:registryOrigin,readKey:readerKey});
+ evidence.checks.push('Physical registry DB has exactly Olivia; Attendance DB has no subjects table');
+ const port=18769,origin=`http://localhost:${port}`;
+ server=createApp({pool,publicOrigin:origin,faceWorker:worker,subjectRegistry,recordingStore:createRecordingStore({root:fileURLToPath(new URL('../.tmp/subjects-recordings-'+Date.now()+'/',import.meta.url))})});
+ await new Promise(r=>server.listen(port,'127.0.0.1',r));
+ browser=await chromium.launch({channel:'msedge',headless:true,args:['--use-fake-ui-for-media-stream','--use-fake-device-for-media-stream',`--use-file-for-fake-video-capture=${fileURLToPath(new URL('../.tmp/olivia-controlled.y4m',import.meta.url))}`]});
+ const context=await browser.newContext({viewport:{width:1400,height:1000},permissions:['camera']});
+ const login=await context.request.post(origin+'/api/login',{headers:{Origin:origin},data:{email:demo.teacherEmail,password}});
+ assert.equal(login.status(),200);
+ const pages=[];
+ for(const [path,label] of [['criminal-detection.html','subject-finder'],['index.html','attendance'],['parent-child.html','parent-child']]) {
+  const page=await context.newPage();pages.push(page);
+  const recordingResponses=[];
+  page.on('response',response=>{const url=new URL(response.url());if(url.pathname.includes('/recordings'))recordingResponses.push({path:url.pathname,method:response.request().method(),status:response.status()});});
+  const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto(origin+'/'+path);
+  try {if(label==='parent-child'){const roster=await context.request.get(origin+'/api/subjects?app=parent-child');assert.deepEqual((await roster.json()).subjects.map(s=>s.name),['Olivia']);await page.locator('#subjects-live-match').waitFor();}else await page.locator('#subjects-list').getByText('Olivia',{exact:true}).waitFor({timeout:15000});}
+  catch(e) {console.log(label,await page.locator('body').innerText(),errors);await page.screenshot({path:fileURLToPath(new URL('failure.png',reportDir)),fullPage:true});throw e;}
+  if(label==='attendance')await page.waitForFunction(()=>window.Presence?.getContext().groupId);
+  await page.locator('#start-camera').click();
+  await page.waitForFunction(()=>(document.querySelector('#subjects-live-match')||document.querySelector('#subjects-match'))?.textContent==='Got you, Olivia',{timeout:60000});
+  if(label==='attendance'){
+   const deadline=Date.now()+30000;
+   while(!recordingResponses.some(r=>r.method==='PUT'&&r.path.includes('/chunks/')&&r.status===200)&&Date.now()<deadline)await new Promise(r=>setTimeout(r,100));
+   assert.ok(recordingResponses.some(r=>r.method==='POST'&&r.path.startsWith('/api/groups/')&&r.status===200),'HTTP recording creation must succeed');
+   assert.ok(recordingResponses.some(r=>r.method==='PUT'&&r.path.includes('/chunks/')&&r.status===200),'real MediaRecorder chunk upload must succeed');
+   assert.ok(!recordingResponses.some(r=>r.path.endsWith('/finish')),'recording must remain active in the same course until camera stop');
+   assert.match(await page.locator('#recording-state').textContent(),/Recording ·|Uploading recording/);
+   assert.equal(await page.locator('#recording-error').textContent(),'');
+  }
+  const filename=label+'-olivia.png';await page.screenshot({path:fileURLToPath(new URL(filename,reportDir)),fullPage:true});
+  assert.deepEqual(errors,[]);evidence.checks.push(label+': actual API/worker returned Olivia, UI Got you, Olivia');evidence.screenshots.push(filename);
+  await page.locator('#stop-camera').click();
+  if(label==='attendance'){
+   const deadline=Date.now()+30000;
+   while(!recordingResponses.some(r=>r.method==='POST'&&r.path.endsWith('/finish')&&r.status===200)&&Date.now()<deadline)await new Promise(r=>setTimeout(r,100));
+   assert.ok(recordingResponses.some(r=>r.method==='POST'&&r.path.endsWith('/finish')&&r.status===200),'HTTP recording finalize must succeed');
+   assert.ok(recordingResponses.every(r=>r.status<400),JSON.stringify(recordingResponses));
+   assert.equal(await page.locator('#recording-error').textContent(),'');
+   evidence.checks.push('Attendance real MediaRecorder HTTP create/chunk/finalize all succeeded, recording error panel empty');
+  }
+ }
+ const update=await fetch(registryOrigin+'/api/subjects/external/e2e-person',{method:'PUT',headers:{'X-API-Key':key,'Content-Type':'application/json'},body:JSON.stringify({name:'API Added Subject',apps:['subject-finder','attendance','parent-child']})});
+ assert.equal(update.status,200);const first=await update.json();
+ const retry=await fetch(registryOrigin+'/api/subjects/external/e2e-person',{method:'PUT',headers:{'X-API-Key':key,'Content-Type':'application/json'},body:JSON.stringify({name:'API Updated Subject'})});
+ assert.equal(retry.status,200);const second=await retry.json();assert.equal(second.subject.id,first.subject.id);
+ for(const page of pages.slice(0,2))await page.locator('#subjects-list').getByText('API Updated Subject',{exact:true}).waitFor({timeout:30000});
+ evidence.checks.push('API key upsert without cookie/origin, same ID on retry, Subject Finder and Attendance lists refreshed without restart; Parent & Child consumed registry over HTTP');
+ await pages[0].screenshot({path:fileURLToPath(new URL('api-updated-list.png',reportDir)),fullPage:true});evidence.screenshots.push('api-updated-list.png');
+ const disabled=await fetch(registryOrigin+'/api/subjects/external/e2e-person',{method:'DELETE',headers:{'X-API-Key':key}});assert.equal(disabled.status,200);
+ assert.equal((await registry.pool.query("SELECT count(*)::int n FROM registry.subjects WHERE external_id='e2e-person'")).rows[0].n,0);
+ for(const page of pages.slice(0,2))await page.waitForFunction(()=>!document.querySelector('#subjects-list').textContent.includes('API Updated Subject'),{timeout:30000});
+ evidence.checks.push('External API DELETE physically removed test subject and updated open Subject Finder and Attendance lists');
+ const off=await fetch(registryOrigin+'/api/subjects/external/team_olivia',{method:'DELETE',headers:{'X-API-Key':key}});assert.equal(off.status,200);
+ assert.equal((await registry.pool.query('SELECT count(*)::int n FROM registry.subjects')).rows[0].n,0);
+ assert.equal((await registry.pool.query('SELECT count(*)::int n FROM registry.face_references')).rows[0].n,0);
+ for(const page of pages.slice(0,2))await page.waitForFunction(()=>!document.querySelector('#subjects-list').textContent.includes('Olivia'),{timeout:30000});
+ await pages[0].locator('#start-camera').click();
+ await pages[0].waitForFunction(()=>document.querySelector('#subjects-match')?.textContent==='No identity match',{timeout:30000});
+ await pages[0].screenshot({path:fileURLToPath(new URL('olivia-deleted.png',reportDir)),fullPage:true});
+ await pages[0].locator('#stop-camera').click();
+ evidence.checks.push('Deleted Olivia and face bytes: same camera photo became unknown, no Got you');evidence.screenshots.push('olivia-deleted.png');
+ const restored=await fetch(registryOrigin+'/api/subjects/external/team_olivia',{method:'PUT',headers:{'X-API-Key':key,'Content-Type':'application/json'},body:JSON.stringify({name:'Olivia',image:oliviaImage})});assert.equal(restored.status,200);
+ await provisionSubjectKey(registry.pool,{name:'olivia-source',apps:['subject-finder']});
+ for(const page of [pages[1]])await page.waitForFunction(()=>document.querySelector('#subjects-list').textContent.includes('No registered subjects'),{timeout:30000});
+ await pages[0].locator('#subjects-list').getByText('Olivia',{exact:true}).waitFor({timeout:30000});
+ await pages[1].screenshot({path:fileURLToPath(new URL('source-permission-revoked.png',reportDir)),fullPage:true});
+ assert.deepEqual((await (await context.request.get(origin+'/api/subjects?app=parent-child')).json()).subjects,[]);
+ evidence.checks.push('Source permission revocation incremented version: Attendance and Parent & Child cleared, Subject Finder retained Olivia');evidence.screenshots.push('source-permission-revoked.png');
+ const denied=await fetch(registryOrigin+'/api/subjects/external/denied',{method:'PUT',headers:{'X-API-Key':'subjects_'+'0'.repeat(64),'Content-Type':'application/json'},body:JSON.stringify({name:'Denied'})});assert.equal(denied.status,401);
+ evidence.checks.push('Invalid API key rejected 401');
+ await writeFile(new URL('evidence.json',reportDir),JSON.stringify(evidence,null,2));
+ console.log(JSON.stringify(evidence,null,2));
+} finally {await browser?.close();worker.close();registryWorker.close();if(server)await new Promise(r=>server.close(r));if(registryServer)await new Promise(r=>registryServer.close(r));await registry.pool.end();await engine.close();}

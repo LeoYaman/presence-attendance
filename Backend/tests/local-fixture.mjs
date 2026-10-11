@@ -2,7 +2,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { readFile } from 'node:fs/promises';
 import { applyMigrations } from '../scripts/migrations.mjs';
 
-export async function localDatabase() {
+export async function localDatabase({ applyExternalSubjectRegistry = true } = {}) {
   const engine = new PGlite();
   const db = { query:async (sql,params) => params ? engine.query(sql,params) : (await engine.exec(sql)).at(-1), release() {} };
   // PGlite has one connection. Model pool ownership so concurrent HTTP requests
@@ -31,6 +31,9 @@ export async function localDatabase() {
   await db.query(await readFile(new URL('../db/migrations/010_demo_alerts.sql',import.meta.url),'utf8'));
   await db.query(await readFile(new URL('../db/migrations/011_demo_passengers.sql',import.meta.url),'utf8'));
   await db.query(await readFile(new URL('../db/migrations/012_demo_olivia_passenger.sql',import.meta.url),'utf8'));
+  await db.query(await readFile(new URL('../db/migrations/013_shared_subjects.sql',import.meta.url),'utf8'));
+  if(applyExternalSubjectRegistry)
+    await db.query(await readFile(new URL('../db/migrations/014_external_subject_registry.sql',import.meta.url),'utf8'));
   // SQL implementation used solely to exercise HTTP query shape locally. The
   // opt-in integration suite verifies native Timescale timezone bucket behavior.
   await db.query(`CREATE FUNCTION public.time_bucket(width interval,stamp timestamptz) RETURNS timestamptz

@@ -41,12 +41,21 @@ export const expectedTables = [
   'attendance_sessions', 'attendance_records', 'face_enrollments', 'audit_logs',
 ];
 
+export const retiredSubjectTables = [
+  'subject_sync_sources', 'subject_api_keys', 'subjects', 'subject_app_access',
+  'subject_person_links', 'subject_face_references', 'subject_catalog_version', 'subject_sync_audit',
+];
+
 export async function verifySchema(db, { baseOnly = false } = {}) {
   const { rows } = await db.query(`SELECT table_name FROM information_schema.tables
     WHERE table_schema = 'attendance' AND table_type = 'BASE TABLE' ORDER BY table_name`);
   const existing = new Set(rows.map(r => r.table_name));
     const missing = [...expectedTables, ...(!baseOnly ? ['attendance_events','auth_sessions','face_datasets','face_dataset_subjects','face_dataset_images','team_face_references','admin_settings'] : [])].filter(t => !existing.has(t));
   if (missing.length) throw new Error(`Missing tables: ${missing.join(', ')}`);
+  if (!baseOnly) {
+    const stale = retiredSubjectTables.filter(t => existing.has(t));
+    if (stale.length) throw new Error(`Unexpected legacy subject tables: ${stale.join(', ')}`);
+  }
   const tracking = await db.query("SELECT to_regclass('public.presence_schema_migrations') AS tracking");
   if (!tracking.rows[0].tracking) throw new Error('Missing migration tracking table');
   const migrationRows = (await db.query('SELECT name, checksum FROM public.presence_schema_migrations ORDER BY name')).rows;

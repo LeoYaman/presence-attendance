@@ -8,6 +8,9 @@ test('runtime grant template supports admin management while preserving attendan
   try {
     await q('CREATE ROLE presence_runtime');
     await q(await readFile(new URL('../db/runtime_grants.sql',import.meta.url),'utf8'));
+    const legacyTables=(await q(`SELECT table_name FROM information_schema.tables
+      WHERE table_schema='attendance' AND table_name LIKE 'subject%'`)).rows;
+    assert.deepEqual(legacyTables,[]);
     const teacher=randomUUID(),person=randomUUID(),group=randomUUID(),session=randomUUID(),face=randomUUID();
     await q("INSERT INTO attendance.users(id,email,password_hash,role) VALUES($1,'grants@example.test','NONLOGIN','teacher')",[teacher]);
     await q("INSERT INTO attendance.people(id,person_code,full_name) VALUES($1,'GRANT-P','Grant Test')",[person]);

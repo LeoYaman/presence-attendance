@@ -1,0 +1,10 @@
+{
+  "origin": "https://lls3utct362n0w-8888.proxy.runpod.net",
+  "checks": [
+    "Rebbeca alone: blocked, no manual approval or missing-person disclosure",
+    "Anthony alone: blocked, no manual approval or missing-person disclosure",
+    "Leo alone: blocked, no manual approval or missing-person disclosure",
+    "Live UI preserves Got you, Rebbeca; both status areas say Cannot exit alone; no approval action"
+  ],
+  "camera": "controlled saved Rebbeca photo through actual RunPod API and SFace"
+}
