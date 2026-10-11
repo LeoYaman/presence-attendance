@@ -44,10 +44,27 @@
 <aside class="team-panel"><h2>Demo setup</h2><label class="team-option"><input id="consent" type="checkbox"><span>Everyone in view is a consenting team demo participant.</span></label><fieldset class="team-participants"><legend>Demo participants</legend><p class="team-note">Checked participants are included in matching. Uncheck someone to remove their reference from this demo gallery. Photos remain saved.</p><label class="team-option"><input type="checkbox" data-reference="team_anthony" checked><span>Anthony</span></label><label class="team-option"><input type="checkbox" data-reference="team_leo" checked><span>Leo</span></label><label class="team-option"><input type="checkbox" data-reference="team_rebbeca" checked><span>Rebbeca</span></label><label class="team-option"><input type="checkbox" data-reference="team_olivia" checked><span>Olivia</span></label><button type="button" class="button button--secondary" id="restore-team">Restore everyone</button></fieldset><p id="review-demo" class="team-review" role="status" hidden></p><div class="team-divider"></div><h3>Add demo participant</h3><p class="team-note">One consenting person in view for capture. Their reference lasts up to one hour in server memory, or until deleted/restarted.</p><form id="guest-form"><label>Display name<input id="guest-name" maxlength="60" required class="field" autocomplete="off"></label><label class="team-option"><input type="checkbox" id="guest-consent" required><span>This participant agrees to temporary face recognition.</span></label><button class="button button--secondary" id="guest-add" type="submit">Capture and add participant</button></form><p id="guest-status" role="status"></p><div id="guest-list"></div><div class="team-divider"></div><h3>Classroom attendance</h3><p>Use the existing course and session tools to record and review check-ins.</p><a class="button button--secondary team-attendance" href="/index.html">Open attendance workspace</a><p class="team-note">This camera preview saves no attendance, alerts, review items or frames.</p></aside></div>
 <details class="team-panel team-roleplay"><summary>Presentation roleplay</summary><ol><li>Anthony and Leo enter together: show names, green boxes and match scores.</li><li>Uncheck Olivia in Demo participants, then have her enter. Her reference is excluded from matching; an unmatched face displays Unknown.</li><li>A teammate acts as reception staff and asks to verify the participant's visitor pass.</li><li>Explain that Unknown means unmatched, not dangerous. No notifications are sent.</li><li>Check Olivia again to restore her reference, then open attendance to demonstrate check-in.</li></ol></details>
     <section class="attendance-analytics" id="databricks-panel" aria-labelledby="databricks-title">
-      <div class="analytics-heading"><h2 id="databricks-title">Databricks attendance insights</h2><button class="button button--secondary" type="button" id="analytics-clear">Clear results</button></div>
-      <p>Historical report, separate from the current class session. Attendance includes present and late records; late rate uses all records. These are attendance percentages, not recognition accuracy.</p>
-      <label>Import a Databricks report <input id="analytics-file" type="file" accept=".json,application/json"></label>
-      <p id="analytics-status" role="status">No report loaded. Choose a Databricks JSON report to display results.</p><div id="analytics-results" class="analytics-cards"></div>
-      <details><summary>Export finalized class data for another analysis</summary><label>Class <select id="analytics-group" class="field"></select></label><button id="analytics-export" class="button button--secondary" disabled>Download pseudonymous CSV</button></details>
+      <div class="analytics-heading">
+        <h2 id="databricks-title">Attendance reports</h2>
+        <button class="button button--secondary" type="button" id="analytics-clear">Clear results</button>
+      </div>
+      <p>Choose a finalized session report or the bundled synthetic Databricks demo. You can also import a Databricks Spark JSON report manually.</p>
+      <p id="analytics-list-status" class="analytics-list-status" role="status" aria-live="polite"></p>
+      <label for="analytics-report">Select a report</label>
+      <select id="analytics-report" class="field">
+        <option value="">Choose a report…</option>
+        <option value="demo">Databricks demo report (synthetic)</option>
+      </select>
+      <p><a id="analytics-demo-download" href="/databricks/demo-results.json" download="demo-results.json">Download the synthetic demo JSON</a></p>
+      <label for="analytics-file">Import a Databricks Spark report
+        <input id="analytics-file" type="file" accept=".json,application/json">
+      </label>
+      <p id="analytics-status" role="status" aria-live="polite">No report selected. Choose a report or import a Databricks JSON file.</p>
+      <div id="analytics-results" class="analytics-cards" aria-live="polite"></div>
+      <details>
+        <summary>Export finalized class data for another analysis</summary>
+        <label for="analytics-group">Class <select id="analytics-group" class="field"></select></label>
+        <button id="analytics-export" class="button button--secondary" type="button" disabled>Download pseudonymous CSV</button>
+      </details>
     </section>
 </main></body></html>

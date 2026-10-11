@@ -1,7 +1,43 @@
-<!doctype html><html lang="en" data-university="ucf" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Presence · Attendance insights</title><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/team-demo.css"><script src="/attendance-insights.js" defer></script><link rel="stylesheet" href="/attendance-insights.css"></head><body><main class="team-workspace"><a href="/index.html">Back to attendance</a><h1>Attendance insights</h1><p>Export attendance, analyze it in Databricks, then load the resulting report. Import the report generated in Databricks below. Results start blank on each page load.</p>    <section class="attendance-analytics" id="databricks-panel" aria-labelledby="databricks-title">
-      <div class="analytics-heading"><h2 id="databricks-title">Databricks attendance insights</h2><button class="button button--secondary" type="button" id="analytics-clear">Clear results</button></div>
-      <p>Historical report, separate from the current class session. Attendance includes present and late records; late rate uses all records. These are attendance percentages, not recognition accuracy.</p>
-      <label>Import a Databricks report <input id="analytics-file" type="file" accept=".json,application/json"></label>
-      <p id="analytics-status" role="status">No report loaded. Choose a Databricks JSON report to display results.</p><div id="analytics-results" class="analytics-cards"></div>
-      <details><summary>Export finalized class data for another analysis</summary><label>Class <select id="analytics-group" class="field"></select></label><button id="analytics-export" class="button button--secondary" disabled>Download pseudonymous CSV</button></details>
-    </section></main></body></html>
+<!doctype html>
+<html lang="en" data-university="ucf" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Presence · Attendance insights</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/team-demo.css">
+  <link rel="stylesheet" href="/attendance-insights.css">
+  <script src="/attendance-insights.js" defer></script>
+</head>
+<body>
+  <main class="team-workspace">
+    <a href="/index.html">Back to attendance</a>
+    <h1>Attendance insights</h1>
+    <p>Review finalized attendance reports or export attendance for a separate Databricks analysis. Reports are historical snapshots; this page does not run live Databricks analysis.</p>
+    <section class="attendance-analytics" id="databricks-panel" aria-labelledby="databricks-title">
+      <div class="analytics-heading">
+        <h2 id="databricks-title">Attendance reports</h2>
+        <button class="button button--secondary" type="button" id="analytics-clear">Clear results</button>
+      </div>
+      <p>Choose a finalized session report or the bundled synthetic Databricks demo. You can also import a Databricks Spark JSON report manually.</p>
+      <p id="analytics-list-status" class="analytics-list-status" role="status" aria-live="polite"></p>
+      <label for="analytics-report">Select a report</label>
+      <select id="analytics-report" class="field">
+        <option value="">Choose a report…</option>
+        <option value="demo">Databricks demo report (synthetic)</option>
+      </select>
+      <p><a id="analytics-demo-download" href="/databricks/demo-results.json" download="demo-results.json">Download the synthetic demo JSON</a></p>
+      <label for="analytics-file">Import a Databricks Spark report
+        <input id="analytics-file" type="file" accept=".json,application/json">
+      </label>
+      <p id="analytics-status" role="status" aria-live="polite">No report selected. Choose a report or import a Databricks JSON file.</p>
+      <div id="analytics-results" class="analytics-cards" aria-live="polite"></div>
+      <details>
+        <summary>Export finalized class data for another analysis</summary>
+        <label for="analytics-group">Class <select id="analytics-group" class="field"></select></label>
+        <button id="analytics-export" class="button button--secondary" type="button" disabled>Download pseudonymous CSV</button>
+      </details>
+    </section>
+  </main>
+</body>
+</html>

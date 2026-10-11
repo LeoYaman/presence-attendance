@@ -1,4 +1,4 @@
-import {createAttendanceExport} from './attendance-analytics.mjs';
+import {createAttendanceExport,createAttendanceReports} from './attendance-analytics.mjs';
 import {createTeamDemo} from './team-demo.mjs';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
@@ -65,6 +65,7 @@ export function createApp({ pool, publicOrigin = 'http://localhost:3000', secure
   const dummyHashPromise = hashPassword(opaqueToken());
   const adminApi = createAdminApi({pool,fail,uuid,timestamp,fields,recordingStore});
   const attendanceExport=createAttendanceExport({pool,fail,uuid,syntheticCamera});
+  const attendanceReports=createAttendanceReports({pool,fail,uuid});
   const teamDemo=createTeamDemo({pool,faceWorker,fail,fields,enabled:syntheticCamera});
   const passengerApi = createPassengerApi({pool,faceWorker,fail,fields});
   const subjectsApi = createSubjectsApi({pool,subjectRegistry,fail,fields,uuid});
@@ -216,6 +217,7 @@ export function createApp({ pool, publicOrigin = 'http://localhost:3000', secure
     }
     if (path === '/api/me' && method === 'GET') return {user:userView(user),csrfToken:user.csrf_token,capabilities:{syntheticCamera}};
     if(path==='/api/attendance-insights/export' && method==='GET')return await attendanceExport({user,url,res});
+    if((path==='/api/attendance-insights/reports'||path.startsWith('/api/attendance-insights/reports/')) && method==='GET')return await attendanceReports({user,url,res});
     if((path==='/api/team-demo/detect' && method==='POST')||(path==='/api/team-demo/participants' && ['GET','POST'].includes(method))||(path==='/api/team-demo/participants/delete' && method==='POST')) {
       try{return await teamDemo({user,body,action:path.endsWith('/delete')?'delete':path.endsWith('/participants')?(method==='GET'?'list':'add'):'detect'});}catch(error){if(error instanceof HttpError)throw error;throw new HttpError(error.status||503,error.code||'face_service_unavailable',error.message||'Face service unavailable');}
     }
