@@ -5,7 +5,7 @@
   "type": "module",
   "engines": { "node": ">=22" },
   "scripts": {
-    "start:local": "node scripts/local-demo.mjs",
+    "start:local": "node ../scripts/start-demo.mjs",
     "start": "node scripts/start.mjs",
     "seed:demo": "node scripts/seed-demo.mjs --synthetic",
     "db:check": "node scripts/database.mjs check",

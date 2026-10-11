@@ -1,0 +1,29 @@
+{
+  "sourceCommit": "4e6bf7eab4a4b07fb835d4ca7d9048fecaef3045",
+  "references": [
+    {
+      "key": "team_anthony",
+      "name": "Anthony",
+      "sourcePath": "face_data/people_faces/WIN_20261010_00_51_21_Pro.jpg",
+      "sha256": "9c21aa162f496017da353f6213699492450cd6adac74bcaf927b74bf4a787308"
+    },
+    {
+      "key": "team_leo",
+      "name": "Leo",
+      "sourcePath": "face_data/people_faces/WIN_20261010_00_51_36_Pro.jpg",
+      "sha256": "b256f4813106e822eb2ac951d11c55043e143ad302490caafc5c69abb9741dd6"
+    },
+    {
+      "key": "team_rebbeca",
+      "name": "Rebbeca",
+      "sourcePath": "face_data/people_faces/WIN_20261010_00_52_21_Pro.jpg",
+      "sha256": "97d4bdb9332d147dacd5d88601820b0e52c323830233a3dd13f8f9c961665d48"
+    },
+    {
+      "key": "team_olivia",
+      "name": "Olivia",
+      "sourcePath": "face_data/people_faces/WIN_20261010_00_52_47_Pro.jpg",
+      "sha256": "d3c19b5f35e0b581692677e184e3c466b71be6082bdc4ff6daae3e434f6c2aff"
+    }
+  ]
+}

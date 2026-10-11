@@ -50,7 +50,14 @@ $$("img[data-logo]").forEach(img => {
 });
 
 const state = { user: null, csrf: "", preview: false, profile: null, groups: [], history: [], summary: [], students: [], personId: "", groupId: "", version: 0, busy: false, saving: false };
-const studentSelectionMode = ['1', 'select'].includes(new URLSearchParams(window.location.search).get('demo')) || new URLSearchParams(window.location.search).get('view') === 'students';
+const studentQuery = new URLSearchParams(window.location.search);
+const studentSelectionMode = ['1', 'select'].includes(studentQuery.get('demo')) || studentQuery.get('view') === 'students';
+const presentationAvailable = studentQuery.get('demo') === '1'
+  ? fetch('/api/presentation', { credentials: 'same-origin', cache: 'no-store' })
+    .then(async response => response.ok && (await response.json()).enabled === true)
+    .catch(() => false)
+  : Promise.resolve(false);
+let presentationLogin = null;
 const labels = { present: "Present", late: "Late", absent: "Absent", pending: "Pending" };
 const courseSelect = $("#course-select"), previewSelect = $("#preview-select"), preference = $("#email-notifications"), historyBody = $("tbody", $(".history"));
 function message(text) { $("#attendance-state").textContent = text; }
@@ -217,11 +224,15 @@ async function refreshSelectedStudent() {
     let identity;
     try { identity = await api('/api/me'); }
     catch (error) {
-      if (error.status !== 401) throw error;
-      const response = await fetch('/api/presentation-login', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: '{}' });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error?.message || 'Unable to open the student workspace.');
-      identity = result;
+      if (error.status !== 401 || !await presentationAvailable) throw error;
+      presentationLogin ||= (async () => {
+        const response = await fetch('/api/presentation-login', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+        const result = await response.json();
+        if (!response.ok || result?.user?.role !== 'teacher') throw new Error(result?.error?.message || 'Unable to open the student workspace.');
+        return result;
+      })();
+      identity = await presentationLogin;
+      presentationLogin = null;
     }
     if (!['teacher', 'admin'].includes(identity.user.role)) throw new Error('The professor account is required to view these students.');
     state.user = identity.user; state.csrf = identity.csrfToken;
@@ -250,7 +261,12 @@ async function refreshSelectedStudent() {
   } catch (error) {
     if (version !== state.version) return;
     state.students = []; previewSelect.replaceChildren(); previewSelect.disabled = true;
-    resetRecords('Attendance unavailable.'); message(error.message);
+    if (error.status === 401) {
+      state.user = null; state.preview = false; state.personId = '';
+      $('#preview-picker').hidden = true; $('#student-signin').hidden = false;
+      resetRecords('Sign in to view your attendance.');
+    } else resetRecords('Attendance unavailable.');
+    message(error.message);
   } finally {
     if (version === state.version) { state.busy = false; $("#refresh-attendance").disabled = false; }
   }

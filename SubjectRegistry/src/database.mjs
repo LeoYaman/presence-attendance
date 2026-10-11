@@ -1,7 +1,8 @@
 import {createRequire} from 'node:module';
-import {mkdir,readFile,writeFile,rename,open,unlink} from 'node:fs/promises';
+import {mkdir,readFile,writeFile,rename} from 'node:fs/promises';
 import {join,resolve} from 'node:path';
 import {createHash} from 'node:crypto';
+import {lockLocalDatabase} from '../../Backend/scripts/local-database-lock.mjs';
 const ownRequire=createRequire(import.meta.url),backendRequire=createRequire(new URL('../../Backend/package.json',import.meta.url));
 const require=name=>{try{return ownRequire(name);}catch(error){if(error.code!=='MODULE_NOT_FOUND')throw error;return backendRequire(name);}};
 const {PGlite}=require('@electric-sql/pglite');
@@ -25,30 +26,21 @@ export async function initializeRegistry(db) {
 }
 export async function openRegistryDatabase(dataDir) {
  dataDir=resolve(dataDir);await mkdir(dataDir,{recursive:true});
- const lockPath=join(dataDir,'database.lock');let lock;
- try{lock=await open(lockPath,'wx',0o600);}catch(error){
-  if(error.code!=='EEXIST')throw error;
-  const pid=Number(await readFile(lockPath,'utf8'));let running=true;
-  if(Number.isSafeInteger(pid)&&pid>0){try{process.kill(pid,0);}catch(e){if(e.code==='ESRCH')running=false;}}
-  if(running)throw new Error('Subject registry database is already open');
-  await unlink(lockPath);lock=await open(lockPath,'wx',0o600);
- }
- await lock.writeFile(String(process.pid));
+ const unlock=await lockLocalDatabase(dataDir,{label:'Subject registry'});
  const snapshot=join(dataDir,'database.tar');let saved,engine;
- const unlock=async()=>{await lock.close();await unlink(lockPath);};
  try{
   try{saved=new Blob([await readFile(snapshot)]);}catch(error){if(error.code!=='ENOENT')throw error;}
   engine=new PGlite(saved?{loadDataDir:saved}:{});
   const raw={query:async(sql,params)=>params?engine.query(sql,params):(await engine.exec(sql)).at(-1)};
   const persist=async()=>{const blob=await engine.dumpDataDir();await writeFile(snapshot+'.tmp',Buffer.from(await blob.arrayBuffer()),{mode:0o600});await rename(snapshot+'.tmp',snapshot);};
   await initializeRegistry(raw);await persist();
-  let tail=Promise.resolve(),fault=null,closing=false;
+  let tail=Promise.resolve(),fault=null,closing=false,ending;
   async function acquire(){let release;const next=new Promise(r=>release=r),prior=tail;tail=next;await prior;if(fault||closing){release();throw fault??new Error('Registry database closed');}return release;}
   async function durable(){try{await persist();}catch(e){fault=new Error('Registry persistence failed; restart required',{cause:e});throw fault;}}
   const pool={
    async query(sql,params){const release=await acquire();try{const result=await raw.query(sql,params);if(!/^\s*(SELECT|SHOW)\b/i.test(sql))await durable();return result;}finally{release();}},
    async connect(){const release=await acquire();let readOnly=false;return {query:async(sql,params)=>{const result=await raw.query(sql,params);if(/^\s*BEGIN\b/i.test(sql))readOnly=/\bREAD\s+ONLY\b/i.test(sql);if(/^\s*COMMIT\b/i.test(sql)&&!readOnly)await durable();return result;},release};},
-   async end(){closing=true;await tail;await engine.close();await unlock();}
+   end(){return ending??=(async()=>{closing=true;await tail;try{await engine.close();}finally{await unlock();}})();}
   };
   return {pool,engine};
  }catch(error){await engine?.close().catch(()=>{});await unlock();throw error;}

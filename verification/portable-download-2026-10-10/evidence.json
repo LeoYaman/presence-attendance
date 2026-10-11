@@ -1,0 +1,77 @@
+{
+  "gitless": true,
+  "roles": [
+    {
+      "role": "Professor",
+      "path": "/index.html",
+      "query": "",
+      "sessionRole": "teacher",
+      "errors": []
+    },
+    {
+      "role": "Student",
+      "path": "/student.html",
+      "query": "?demo=1",
+      "sessionRole": "teacher",
+      "errors": []
+    },
+    {
+      "role": "Faculty",
+      "path": "/parent-child.html",
+      "query": "",
+      "sessionRole": "teacher",
+      "errors": []
+    },
+    {
+      "role": "Security",
+      "path": "/criminal-detection.html",
+      "query": "",
+      "sessionRole": "teacher",
+      "errors": []
+    }
+  ],
+  "recognition": [
+    {
+      "app": "attendance",
+      "name": "Anthony",
+      "matched": true,
+      "method": "controlled original reference photo; not live webcam"
+    },
+    {
+      "app": "attendance",
+      "name": "Olivia",
+      "matched": true,
+      "method": "controlled original reference photo; not live webcam"
+    },
+    {
+      "app": "parent-child",
+      "name": "Anthony",
+      "matched": true,
+      "method": "controlled original reference photo; not live webcam"
+    },
+    {
+      "app": "parent-child",
+      "name": "Olivia",
+      "matched": true,
+      "method": "controlled original reference photo; not live webcam"
+    },
+    {
+      "app": "subject-finder",
+      "name": "Anthony",
+      "matched": true,
+      "method": "controlled original reference photo; not live webcam"
+    },
+    {
+      "app": "subject-finder",
+      "name": "Olivia",
+      "matched": true,
+      "method": "controlled original reference photo; not live webcam"
+    }
+  ],
+  "catalogCourses": 10,
+  "rosterCount": 34,
+  "pickupEnabled": true,
+  "demoOperatorId": "d3102026-0000-4000-8000-000000000002",
+  "restartPreservesSubjects": true,
+  "internalRegistryStayedLocal": true
+}

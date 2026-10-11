@@ -19,8 +19,7 @@ const directory=await mkdtemp(join(scratch,'recording-browser-'));
 const password='Isolated-browser-recording-2026';
 let local,server,browser,store;
 try {
-  const playwrightPath=process.env.PLAYWRIGHT_MODULE||'C:/Users/XC-831/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs';
-  const {chromium}=await import(pathToFileURL(playwrightPath));
+  const {chromium}=await import(process.env.PLAYWRIGHT_MODULE?pathToFileURL(process.env.PLAYWRIGHT_MODULE).href:'playwright');
   let executable=process.env.BROWSER_EXECUTABLE;
   if(!executable) for(const candidate of ['C:/Program Files/Google/Chrome/Application/chrome.exe','C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe']) {
     try {await access(candidate);executable=candidate;break;} catch {}

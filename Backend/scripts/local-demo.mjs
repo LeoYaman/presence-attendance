@@ -11,6 +11,9 @@ import {createApp} from '../src/server.mjs';
 import {createSubjectRegistryClient} from '../src/subject-registry-client.mjs';
 import {createDemoAlerts} from '../src/demo-alerts.mjs';
 import {opaqueToken,tokenDigest,sessionCookie} from '../src/auth.mjs';
+import {pickupConfiguration} from '../src/pickup-demo.mjs';
+import {ensureDemoTeamReferences} from './demo-fixtures.mjs';
+import {lockLocalDatabase} from './local-database-lock.mjs';
 
 export function localDemoConfiguration(env=process.env) {
   const port=Number(env.LOCAL_DEMO_PORT??3000);
@@ -44,6 +47,8 @@ export function authorizeLocalDemoRequest(req,configuration) {
 
 export async function openLocalDatabase(dataDir) {
   await mkdir(dataDir,{recursive:true});
+  const unlock=await lockLocalDatabase(dataDir);
+  try {
   const snapshot=join(dataDir,'database.tar');
   let saved;
   try{saved=new Blob([await readFile(snapshot)]);}catch(error){if(error.code!=='ENOENT')throw error;}
@@ -87,36 +92,68 @@ export async function openLocalDatabase(dataDir) {
         return result;
       },release};
     },
-    async end(){await tail; if(!engine.closed) await engine.close();}
+    async end(){await tail;try{if(!engine.closed) await engine.close();}finally{await unlock();}}
   };
   return {pool,engine};
+  }catch(error){await unlock();throw error;}
 }
 
-async function main(){
-  if(process.env.NODE_ENV==='production') throw new Error('Local demo is forbidden in production');
-  const configuration=localDemoConfiguration();
+export async function startLocalDemo({env=process.env,dataDir=fileURLToPath(new URL('../.local-db/pgdata/',import.meta.url)),subjectRegistry,prepareTeam=false,faceWorker,recordingStore}={}){
+  if(env.NODE_ENV==='production') throw new Error('Local demo is forbidden in production');
+  const configuration=localDemoConfiguration(env);
   const {port,publicOrigin,secureCookies}=configuration;
-  const {pool}=await openLocalDatabase(fileURLToPath(new URL('../.local-db/pgdata/',import.meta.url)));
-  let subjectRegistry;
+  const {pool}=await openLocalDatabase(dataDir);
+  let demoAlerts,server;
+  try {
+  if(!subjectRegistry) {
   try {
     const registryConfig=JSON.parse(await readFile(new URL('../../SubjectRegistry/.local-db/service-config.json',import.meta.url),'utf8'));
-    const readKey=process.env.SUBJECT_REGISTRY_READ_KEY??registryConfig.readerKey;
+    const readKey=env.SUBJECT_REGISTRY_READ_KEY??registryConfig.readerKey;
     if(typeof readKey==='string'&&readKey.length) subjectRegistry=createSubjectRegistryClient({
-      url:process.env.SUBJECT_REGISTRY_URL??'http://127.0.0.1:3002',readKey,
+      url:env.SUBJECT_REGISTRY_URL??'http://127.0.0.1:3002',readKey,
     });
   } catch(error) { if(error.code!=='ENOENT') throw error; }
+  }
   const client=await pool.connect();
-  try{await client.query('BEGIN'); await seedDemo(client,opaqueToken()); await seedLocalCatalog(client,{localOnly:true}); await client.query('COMMIT');}
+  try{await client.query('BEGIN'); await seedDemo(client,opaqueToken()); await client.query('COMMIT');}
   catch(error){await client.query('ROLLBACK'); throw error;}finally{client.release();}
-  const demoAlerts=createDemoAlerts({pool});
+  if(prepareTeam) await ensureDemoTeamReferences(pool);
+  const catalog=await pool.connect();
+  try{await catalog.query('BEGIN');await seedLocalCatalog(catalog,{localOnly:true});await catalog.query('COMMIT');}
+  catch(error){await catalog.query('ROLLBACK');throw error;}finally{catalog.release();}
+  demoAlerts=createDemoAlerts({pool});
   await demoAlerts.start();
-  const server=createApp({pool,publicOrigin,secureCookies,syntheticCamera:true,demoAlerts,subjectRegistry});
+  server=createApp({pool,publicOrigin,secureCookies,syntheticCamera:true,demoAlerts,subjectRegistry,
+    pickupSettings:pickupConfiguration(env),...(faceWorker?{faceWorker}:{}),...(recordingStore?{recordingStore}:{})});
   server.on('close',()=>demoAlerts.stop());
   const handle=server.listeners('request')[0]; server.removeAllListeners('request');
   server.on('request',async(req,res)=>{
     // Fixed synthetic teacher session, gated before any route or cookie is issued.
     // Remote mode intentionally disables the localhost fallback.
     if(!authorizeLocalDemoRequest(req,configuration)){res.writeHead(403);res.end('Demo access denied');return;}
+    const url=new URL(req.url,publicOrigin);
+    const json=(status,value)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(value));};
+    if(url.pathname==='/api/presentation') {
+      if(req.method!=='GET'||url.search) return json(405,{error:{message:'Method not allowed'}});
+      return json(200,{enabled:true});
+    }
+    if(url.pathname==='/api/presentation-login') {
+      if(req.method!=='POST'||url.search) return json(405,{error:{message:'Method not allowed'}});
+      if(req.headers.origin!==publicOrigin) return json(403,{error:{message:'Request must come from this application'}});
+      if(!(req.headers['content-type']??'').startsWith('application/json')) return json(415,{error:{message:'JSON required'}});
+      try {
+        let raw='';for await(const chunk of req){raw+=chunk;if(raw.length>64)return json(413,{error:{message:'Request too large'}});}
+        const body=JSON.parse(raw);
+        if(!body||typeof body!=='object'||Array.isArray(body)||Object.keys(body).length) return json(400,{error:{message:'Unsupported fields'}});
+        const user=(await pool.query('SELECT id,email,role,person_id,is_active FROM attendance.users WHERE id=$1',[demo.teacherId])).rows[0];
+        if(user?.role!=='teacher'||user.is_active!==true) return json(403,{error:{message:'Demo operator unavailable'}});
+        const token=opaqueToken(),csrfToken=opaqueToken(),expiry=new Date(Date.now()+8*3600000);
+        await pool.query('INSERT INTO attendance.auth_sessions(token_hash,user_id,csrf_token,expires_at) VALUES($1,$2,$3,$4)',[tokenDigest(token),user.id,csrfToken,expiry]);
+        res.setHeader('Set-Cookie',sessionCookie(token,secureCookies,expiry));
+        return json(200,{user:{id:user.id,email:user.email,role:user.role,person_id:user.person_id,full_name:null},csrfToken,capabilities:{syntheticCamera:true}});
+      }catch(error){return json(error instanceof SyntaxError?400:503,{error:{message:error instanceof SyntaxError?'Invalid JSON':'Demo workspace unavailable'}});}
+    }
+    if(req.url==='/'&&['GET','HEAD'].includes(req.method)) {res.writeHead(303,{Location:'/login.html','Cache-Control':'no-store'});res.end();return;}
     if(req.method==='GET' && (req.url==='/'||req.url==='/index.html'||req.url==='/team-demo.html'||req.url==='/parent-child.html'||req.url==='/demo-alerts.html'||req.url==='/criminal-detection.html'||req.url==='/criminal-test.html'||req.url==='/student.html?demo=1')){
       try{
         const token=opaqueToken(); const expiry=new Date(Date.now()+8*3600000);
@@ -126,7 +163,12 @@ async function main(){
     }
     handle(req,res);
   });
-  server.listen(port,'127.0.0.1',()=>console.log(`LOCAL SYNTHETIC DEMO (PGlite, no TimescaleDB): ${publicOrigin}`));
-  for(const signal of ['SIGINT','SIGTERM']) process.on(signal,()=>server.close(async()=>{await pool.end();process.exit(0);}));
+  await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(port,'127.0.0.1',resolve);});
+  let closing;
+  const close=()=>closing??=(async()=>{server.closeAllConnections();await new Promise(resolve=>server.close(resolve));await pool.end();})();
+  return {server,pool,configuration,close};
+  }catch(error){demoAlerts?.stop();if(server?.listening){server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}await pool.end();throw error;}
 }
-if(process.argv[1] && import.meta.url===pathToFileURL(process.argv[1]).href) main().catch(error=>{console.error('Local demo failed:',error.message);process.exitCode=1;});
+if(process.argv[1] && import.meta.url===pathToFileURL(process.argv[1]).href) {
+  startLocalDemo().then(runtime=>{console.log(`LOCAL DEMO (PGlite, no TimescaleDB): ${runtime.configuration.publicOrigin}`);for(const signal of ['SIGINT','SIGTERM'])process.once(signal,()=>runtime.close().then(()=>process.exit(0)));}).catch(error=>{console.error('Local demo failed:',error.message);process.exitCode=1;});
+}

@@ -18,30 +18,42 @@ window.addEventListener('storage', applyAppearance);
 applyAppearance();
 
 const loginDialog = document.getElementById('login-dialog');
+const presentationAvailable = fetch('/api/presentation', { credentials: 'same-origin', cache: 'no-store' })
+  .then(async response => response.ok && (await response.json()).enabled === true)
+  .catch(() => false);
+let presentationLogin = null;
 let selectedLoginRole = 'Professor';
 document.querySelectorAll('[data-login-role]').forEach(button => {
   button.addEventListener('click', async () => {
     selectedLoginRole = button.dataset.loginRole;
-    if (window.location.hostname.endsWith('.proxy.runpod.net')) {
+    const role = selectedLoginRole;
+    button.disabled = true;
+    if (await presentationAvailable) {
       const destinations = { Professor: '/index.html', Student: '/student.html?demo=1', Faculty: '/parent-child.html', Security: '/criminal-detection.html' };
-      const destination = destinations[selectedLoginRole];
-      if (!destination) return;
-      button.disabled = true;
+      const destination = destinations[role];
+      if (!destination) { button.disabled = false; return; }
       try {
-        const response = await fetch('/api/presentation-login', {
-          method: 'POST', credentials: 'same-origin',
-          headers: { 'Content-Type': 'application/json' }, body: '{}'
-        });
-        const result = await response.json();
-        if (!response.ok || result?.user?.role !== 'teacher') throw new Error(result?.error?.message || 'Demo workspace unavailable.');
+        presentationLogin ||= (async () => {
+          const response = await fetch('/api/presentation-login', {
+            method: 'POST', credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' }, body: '{}'
+          });
+          const result = await response.json();
+          if (!response.ok || result?.user?.role !== 'teacher') throw new Error(result?.error?.message || 'Demo workspace unavailable.');
+          return result;
+        })();
+        await presentationLogin;
         window.location.assign(destination);
       } catch (error) {
+        presentationLogin = null;
         window.alert(error.message || 'Demo workspace unavailable. Please try again.');
         button.disabled = false;
       }
       return;
     }
-    document.getElementById('login-title').textContent = `${selectedLoginRole} Sign In`;
+    button.disabled = false;
+    selectedLoginRole = role;
+    document.getElementById('login-title').textContent = `${role} Sign In`;
     document.getElementById('login-form').reset();
     document.querySelector('#login-form button[type="submit"]').disabled = false;
     document.getElementById('password').type = 'password';

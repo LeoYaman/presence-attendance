@@ -2,7 +2,29 @@
 
 Teacher check-ins and attendance corrections are committed to PostgreSQL before the UI shows success. The existing relational roster and attendance workflows remain in use; an append-only TimescaleDB `attendance_events` hypertable records their state changes in the same transaction. Live camera images and embeddings are not persisted. The anonymous ORL reference archive is stored separately as test data (see below).
 
-## Local setup
+## Download and run the complete local demo
+
+Download the GitHub ZIP and extract it, or clone the repository. Install **Node.js 22+** (including npm) and **64-bit Python 3.12+**. From the extracted repository root:
+
+```sh
+npm ci
+npm run setup
+npm start
+```
+
+On Windows you can instead double-click `Start-Presence.cmd`. Keep its terminal open and visit **http://localhost:3000** when it prints `Presence demo ready`.
+
+Setup installs the Python camera dependencies, downloads the MediaPipe/YuNet/SFace models, validates the four bundled references and installs the local FFmpeg video processor through [imageio-ffmpeg](https://pypi.org/project/imageio-ffmpeg/0.6.0/). The first setup needs internet; installed models and packages are reused afterwards. If Python is outside PATH, set `SETUP_PYTHON` to its executable before setup. On systems without Python venv support, install the system's Python venv package first. Downloads/install errors stop setup with an error; they do not report success.
+
+`npm start` launches the attendance backend **and** the independent SubjectRegistry. The Use Cases screen opens Professor, Student, Faculty and Security without requesting passwords in this explicit local demo. Student is the operator's student preview. The API establishes a trusted server-side demo teacher session; browser-selected roles are not account permissions. Ordinary production startup still requires normal authentication.
+
+The first local launch seeds the ten courses, thirty fictional students and four existing team references (34 catalog roster members). The four bundled team identities are also provisioned into a new, empty SubjectRegistry with stable IDs for the three recognition workspaces. The loader checks bundled SHA-256 values and works **without `.git` or Git installed**. It does not copy live RunPod databases or credentials. Existing attendance, reference provenance and registry edits/deletions survive restart; fixture import does not restore removed subjects after initialization.
+
+Attendance persists under `Backend/.local-db`, registry data/keys under `SubjectRegistry/.local-db`, and real-camera recordings under `Backend/.recordings`. These paths, Python environments and downloaded binaries remain Gitignored. Stop with Ctrl+C before starting another instance. Default ports are 3000 and 3002; customize with `LOCAL_DEMO_PORT` and `SUBJECT_REGISTRY_PORT`. `PRESENCE_DEMO_DATA_DIR` selects a separate local attendance/registry directory. Cloud `.env` files are not loaded by this launcher.
+
+Open the HTTP URL rather than double-clicking HTML or using a static-file server: the workspaces require their APIs. Browser camera permission and participant consent are still required. Fresh downloads have the same demo flows and baseline data, but no private cloud state. Local PGlite preserves PostgreSQL workflow behavior; it does not provide native TimescaleDB hypertables. Production setup remains separate below.
+
+## Production database setup
 
 Requires Node.js 22+ and a PostgreSQL service with TimescaleDB (Tiger Data). From the repository root:
 
@@ -20,7 +42,7 @@ pnpm start
 
 Open `PUBLIC_ORIGIN` (default `http://localhost:3000`). The API serves the root attendance UI on the same origin. See [Backend setup and security](Backend/README.md) for environment variables, authentication, account provisioning, scoped database permissions, synthetic seed commands and optional Timescale integration tests. Existing accounts need compatible password hashes; caller-supplied IDs and roles cannot authenticate a request.
 
-The dashboard opens directly without a login page. It restores an existing backend session automatically; authentication through `/api/login` remains available for an external integration. Without an authorized session, the dashboard displays connection status and disables attendance recording.
+Production restores an existing backend session automatically. Use `/login.html` for role-based sign-in, or authenticate through `/api/login`. Without an authorized session, the dashboard disables attendance recording.
 
 From the repository root, run `node --test tests/frontend.test.mjs` for persistence failure, retry, approval and stale polling behavior. Backend tests use actual HTTP requests to a local test server; if an execution sandbox blocks loopback networking, run those tests in a local terminal with loopback access.
 
@@ -77,7 +99,7 @@ available on request from UCF Brand and Marketing. To switch, replace
 `index.html` to the new file's proportions.
 # Quick offline local demo
 
-From `Backend`, run `npm run start:local`, then visit `http://localhost:3000`. This persistent PGlite demo needs no cloud credentials and opens the fixed synthetic teacher session without a login page. Data is saved in `Backend/.local-db/pgdata/database.tar` after commits. Restarting keeps attendance and corrections. Only use it on this computer; it binds to `127.0.0.1`.
+After the root installation/setup above, run `npm start` from the root (or `npm run start:local` from `Backend`), then visit `http://localhost:3000`. This persistent PGlite demo needs no cloud credentials; the Use Cases screen establishes the fixed demo operator session. Data is saved in `Backend/.local-db/pgdata/database.tar` after commits. Restarting keeps attendance and corrections. The launcher binds to `127.0.0.1`.
 
 The local teacher can select all ten catalog courses using **Choose course**.
 All 30 fictional students are enrolled in every course. When the existing four
