@@ -11,7 +11,7 @@ The synthetic notebook has been run in Databricks and its output is included as 
 
 Notebook validates rows, rejects contradictory duplicates, removes exact duplicates, then computes class attendance/late rates and daily UTC summaries. Suggestions are descriptive rules, not predictions. Synthetic data is clearly labeled: 1,080 fictional rows across 3 classes and 12 sessions each. No real attendance claims.
 
-Live export uses HMAC pseudonymous student IDs, not guaranteed anonymous IDs. No names, photos or embeddings. Configure ATTENDANCE_ANALYTICS_KEY server-side for stable pseudonyms across restarts; otherwise they change. Only finalized past sessions, maximum 10,000 rows, with staff role and class-manager authorization. Dashboard JSON stays browser-local. No database migrations changed.
+Live export uses HMAC pseudonymous student IDs, not guaranteed anonymous IDs. No names, photos or embeddings. Configure ATTENDANCE_ANALYTICS_KEY server-side for stable pseudonyms across restarts; otherwise they change. Only finalized past sessions, maximum 10,000 rows, with staff role and class-manager authorization. Synthetic provenance comes from an explicit record flag when present; otherwise existing synthetic seed audit entries and the established synthetic/fictional group metadata are used. Camera demo configuration does not determine attendance provenance. Other imported synthetic datasets must retain an explicit row flag or the documented group markers. Dashboard JSON stays browser-local. No database migrations changed.
 
 Docs: https://docs.databricks.com/aws/en/notebooks/notebook-export-import and https://docs.databricks.com/aws/en/query/formats/csv
 

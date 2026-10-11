@@ -7,7 +7,9 @@
 import json
 from datetime import datetime, timezone
 from pyspark.sql import functions as F
-from pyspark.sql.window import Window
+
+# Timestamp parsing and daily buckets must not depend on workspace defaults.
+spark.conf.set("spark.sql.session.timeZone", "UTC")
 
 dbutils.widgets.text("input_path", "/Volumes/workspace/default/presence/synthetic-attendance.csv")
 dbutils.widgets.text("output_path", "/Volumes/workspace/default/presence/attendance-insights.json")
@@ -16,7 +18,7 @@ required={"class_code","session_id","student_key","starts_at","checked_in_at","s
 assert required.issubset(source.columns), "Input columns are missing"
 assert source.count() <= 100000, "Keep this demo export below 100,000 rows"
 valid=source.withColumn("start",F.to_timestamp("starts_at")).withColumn("checkin",F.to_timestamp("checked_in_at"))
-invalid=valid.filter(F.col("start").isNull() | ~F.col("status").isin("present","late","absent") | ~F.col("synthetic").isin("true","false") | F.col("class_code").isNull() | F.col("session_id").isNull() | F.col("student_key").isNull() | (F.col("status").isin("present","late") & F.col("checkin").isNull()))
+invalid=valid.filter(F.col("start").isNull() | F.col("status").isNull() | ~F.col("status").isin("present","late","absent") | F.col("synthetic").isNull() | ~F.col("synthetic").isin("true","false") | F.col("class_code").isNull() | F.col("session_id").isNull() | F.col("student_key").isNull() | (F.col("status").isin("present","late") & F.col("checkin").isNull()))
 assert invalid.count()==0, "Invalid rows: fix them before calculating insights"
 # Reject contradictory duplicates; exact retries can safely be dropped.
 keys=["class_code","session_id","student_key"]
